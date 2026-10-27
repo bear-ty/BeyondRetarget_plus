@@ -1,0 +1,235 @@
+name: gr1t1_without_hand
+xml_path: assets/robot/gr1t1/gr1t1_without_hand.urdf
+dof: 32
+root_body: base_link
+model_to_xml_dof:
+- 0
+- 1
+- 2
+- 3
+- 4
+- 5
+- 6
+- 7
+- 8
+- 9
+- 10
+- 11
+- 12
+- 13
+- 14
+- 15
+- 16
+- 17
+- 18
+- 19
+- 20
+- 21
+- 33
+- 34
+- 35
+- 36
+- 37
+- 38
+- 39
+- 51
+- 52
+- 53
+model_dof_order:
+- left_hip_roll_joint
+- left_hip_yaw_joint
+- left_hip_pitch_joint
+- left_knee_pitch_joint
+- left_ankle_pitch_joint
+- left_ankle_roll_joint
+- right_hip_roll_joint
+- right_hip_yaw_joint
+- right_hip_pitch_joint
+- right_knee_pitch_joint
+- right_ankle_pitch_joint
+- right_ankle_roll_joint
+- waist_yaw_joint
+- waist_pitch_joint
+- waist_roll_joint
+- left_shoulder_pitch_joint
+- left_shoulder_roll_joint
+- left_shoulder_yaw_joint
+- left_elbow_pitch_joint
+- left_wrist_yaw_joint
+- left_wrist_roll_joint
+- left_wrist_pitch_joint
+- right_shoulder_pitch_joint
+- right_shoulder_roll_joint
+- right_shoulder_yaw_joint
+- right_elbow_pitch_joint
+- right_wrist_yaw_joint
+- right_wrist_roll_joint
+- right_wrist_pitch_joint
+- head_yaw_joint
+- head_roll_joint
+- head_pitch_joint
+shared_joint_map:
+- name: pelvis
+  robot_link: base_link
+  smpl_joint: 0
+- name: left_hip
+  robot_link: left_thigh_roll_link
+  smpl_joint: 1
+- name: left_knee
+  robot_link: left_shank_pitch_link
+  smpl_joint: 4
+- name: left_ankle
+  robot_link: left_foot_pitch_link
+  smpl_joint: 7
+- name: left_foot
+  robot_link: left_foot_roll_link
+  smpl_joint: 10
+  local_offset:
+  - 0.17
+  - 0.0
+  - -0.035
+- name: right_hip
+  robot_link: right_thigh_roll_link
+  smpl_joint: 2
+- name: right_knee
+  robot_link: right_shank_pitch_link
+  smpl_joint: 5
+- name: right_ankle
+  robot_link: right_foot_pitch_link
+  smpl_joint: 8
+- name: right_foot
+  robot_link: right_foot_roll_link
+  smpl_joint: 11
+  local_offset:
+  - 0.17
+  - 0.0
+  - -0.035
+- name: torso
+  robot_link: torso_link
+  smpl_joint: 6
+- name: left_shoulder
+  robot_link: left_upper_arm_roll_link
+  smpl_joint: 16
+- name: left_elbow
+  robot_link: left_lower_arm_pitch_link
+  smpl_joint: 18
+- name: left_wrist
+  robot_link: left_hand_yaw_link
+  smpl_joint: 20
+- name: left_hand
+  robot_link: left_end_effector_link
+  smpl_joint: 22
+- name: right_shoulder
+  robot_link: right_upper_arm_roll_link
+  smpl_joint: 17
+- name: right_elbow
+  robot_link: right_lower_arm_pitch_link
+  smpl_joint: 19
+- name: right_wrist
+  robot_link: right_hand_yaw_link
+  smpl_joint: 21
+- name: right_hand
+  robot_link: right_end_effector_link
+  smpl_joint: 23
+tail_shared_indices:
+- 4
+- 8
+- 12
+- 13
+- 16
+- 17
+shared_joint_parents:
+- -1
+- 0
+- 1
+- 2
+- 3
+- 0
+- 5
+- 6
+- 7
+- 0
+- 9
+- 10
+- 11
+- 12
+- 9
+- 14
+- 15
+- 16
+gamp_edge_scale:
+- 1.0
+- 0.94396924
+- 1.32833659
+- 0.84876364
+- 1.29235075
+- 0.96015404
+- 1.30141461
+- 0.84795356
+- 1.28739251
+- 0.92291265
+- 0.77184107
+- 0.95373594
+- 0.21632073
+- 2.45655956
+- 0.7633723
+- 0.97760199
+- 0.2111738
+- 2.46468031
+torso_spine2_proxy_alpha: 0.5441401
+neutral_dof:
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+xml_dof: 54

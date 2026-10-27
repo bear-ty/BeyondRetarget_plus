@@ -1,0 +1,73 @@
+# New experiment, fresh robot heads. Official/cache sources remain unchanged.
+OUTPUT_DIR: 'outputs/training'
+EXP_NAME: 'TRAM_robot_decoder6_motion_v6'
+DEVICE: 'cuda'
+LOGDIR: ''
+NUM_WORKERS: 4
+SEED_VALUE: 42
+IMG_RES: 256
+PIN_MEMORY: true
+DATASET:
+  ROOT: 'data/datasets'
+  INDEX_DIR: 'outputs/training/_data_indices'
+  SEQ_LEN: 16
+  STRIDE: 16
+  TRAIN_SOURCES: ['bedlam_vid', 'h36m_vid']
+  SOURCE_WEIGHTS: [0.7647058824, 0.2352941176]
+  VAL_SOURCES: ['bedlam_vid', 'h36m_vid', '3dpw_vid']
+  VAL_FRACTION: 0.1
+  SPLIT_SEED: 3407
+  VAL_MAX_CLIPS: 0
+  SAMPLES_PER_EPOCH: 173568
+  AUDIT_MAX_ROWS: 0
+  PHOTOMETRIC_AUGMENT: false
+  OCCLUSION: false
+  OCCLUDERS: 'data/pascal_occluders.pkl'
+  CONTACT_LABEL_DIR: ''
+  FEATURE_CACHE: 'outputs/feature_cache/vimo_decoder46_16f_v2'
+TRAIN:
+  RESUME: ''
+  FROM_CHECKPOINT: ''
+  BATCH_SIZE: 512
+  VAL_BATCH_SIZE: 512
+  EFFECTIVE_BATCH_SIZE: 1536
+  END_EPOCH: 60
+  MAX_TRAIN_BATCHES: 0
+  MAX_VAL_BATCHES: 0
+  LR: 0.0002
+  WD: 0.0001
+  CLIP_NORM: 0.5
+  PRECISION: 'bf16'
+  SUMMARY_STEP: 25
+MODEL:
+  CHECKPOINT: 'data/pretrain/vimo_checkpoint.pth.tar'
+  ST_MODULE: true
+  MOTION_MODULE: true
+  ST_HDIM: 512
+  MOTION_HDIM: 384
+  ST_NLAYER: 6
+  MOTION_NLAYER: 6
+ROBOT:
+  SPEC: 'configs/robot_g1.yaml'
+  ARCHITECTURE: 'decoder6_motion_v6'
+  STAGE: 'head_only'
+  FREEZE_HUMAN: true
+  HIDDEN_DIM: 512
+  ADAPTER_DIM: 192
+  MOTION_INIT_WEIGHT: 0.85
+  DROPOUT: 0.1
+  OUTPUT_GAIN: 0.01
+ROBOT_LOSS:
+  position_weight: 1.0
+  rotation_weight: 0.25
+  velocity_weight: 0.1
+  acceleration_weight: 0.025
+  dof_smooth_weight: 0.01
+  limit_weight: 1.0
+  position_scale_leg: 0.05
+  rotation_scale_deg: 10.0
+  velocity_scale_leg_s: 0.5
+  acceleration_scale_leg_s2: 5.0
+  dof_acc_scale_s2: 5.0
+  limit_scale_deg: 3.0
+  temporal_warmup_epochs: 5

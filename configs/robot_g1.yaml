@@ -1,0 +1,91 @@
+name: g1
+xml_path: assets/robot/g1/g1_mocap_29dof.xml
+dof: 29
+root_body: pelvis
+model_to_xml_dof: g1_nmr_to_xml
+# The training targets and ``g1_nmr_to_xml`` mapping use MakeTrackingEasy/NMR
+# vector order.  Keep these semantic names in the same order so the structured
+# DoF head assigns its joint embeddings to the physical joint it predicts.
+model_dof_order:
+  - left_hip_pitch_joint
+  - right_hip_pitch_joint
+  - waist_yaw_joint
+  - left_hip_roll_joint
+  - right_hip_roll_joint
+  - waist_roll_joint
+  - left_hip_yaw_joint
+  - right_hip_yaw_joint
+  - waist_pitch_joint
+  - left_knee_joint
+  - right_knee_joint
+  - left_shoulder_pitch_joint
+  - right_shoulder_pitch_joint
+  - left_ankle_pitch_joint
+  - right_ankle_pitch_joint
+  - left_shoulder_roll_joint
+  - right_shoulder_roll_joint
+  - left_ankle_roll_joint
+  - right_ankle_roll_joint
+  - left_shoulder_yaw_joint
+  - right_shoulder_yaw_joint
+  - left_elbow_joint
+  - right_elbow_joint
+  - left_wrist_roll_joint
+  - right_wrist_roll_joint
+  - left_wrist_pitch_joint
+  - right_wrist_pitch_joint
+  - left_wrist_yaw_joint
+  - right_wrist_yaw_joint
+shared_joint_map:
+  - {name: pelvis, robot_link: pelvis, smpl_joint: 0}
+  - {name: left_hip, robot_link: left_hip_roll_link, smpl_joint: 1}
+  - {name: left_knee, robot_link: left_knee_link, smpl_joint: 4}
+  - {name: left_ankle, robot_link: left_ankle_roll_link, smpl_joint: 7}
+  - {name: left_foot, robot_link: left_toe_link, smpl_joint: 10}
+  - {name: right_hip, robot_link: right_hip_roll_link, smpl_joint: 2}
+  - {name: right_knee, robot_link: right_knee_link, smpl_joint: 5}
+  - {name: right_ankle, robot_link: right_ankle_roll_link, smpl_joint: 8}
+  - {name: right_foot, robot_link: right_toe_link, smpl_joint: 11}
+  - {name: torso, robot_link: torso_link, smpl_joint: 6}
+  - {name: left_shoulder, robot_link: left_shoulder_roll_link, smpl_joint: 16}
+  - {name: left_elbow, robot_link: left_elbow_link, smpl_joint: 18}
+  - {name: left_wrist, robot_link: left_wrist_yaw_link, smpl_joint: 20}
+  - {name: left_hand, robot_link: left_rubber_hand, smpl_joint: 22}
+  - {name: right_shoulder, robot_link: right_shoulder_roll_link, smpl_joint: 17}
+  - {name: right_elbow, robot_link: right_elbow_link, smpl_joint: 19}
+  - {name: right_wrist, robot_link: right_wrist_yaw_link, smpl_joint: 21}
+  - {name: right_hand, robot_link: right_rubber_hand, smpl_joint: 23}
+tail_shared_indices: [4, 8, 12, 13, 16, 17]
+shared_joint_parents: [-1, 0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 12, 9, 14, 15, 16]
+gamp_edge_scale: [1.00000000, 1.53771538, 0.81249618, 0.79276698, 0.75933692, 1.56408026, 0.79602900, 0.79201031, 0.75642369, 0.64046934, 1.05464123, 0.70588956, 0.73890218, 0.48522787, 1.04305114, 0.72355357, 0.72132143, 0.48683192]
+torso_spine2_proxy_alpha: 0.5441401
+neutral_dof:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0

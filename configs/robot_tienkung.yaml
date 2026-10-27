@@ -1,0 +1,50 @@
+name: tienkung
+xml_path: assets/robot/tienkung/tienkung.urdf
+dof: 20
+root_body: pelvis
+model_to_xml_dof: null
+model_dof_order:
+  - hip_roll_l_joint
+  - hip_pitch_l_joint
+  - hip_yaw_l_joint
+  - knee_pitch_l_joint
+  - ankle_pitch_l_joint
+  - ankle_roll_l_joint
+  - hip_roll_r_joint
+  - hip_pitch_r_joint
+  - hip_yaw_r_joint
+  - knee_pitch_r_joint
+  - ankle_pitch_r_joint
+  - ankle_roll_r_joint
+  - shoulder_pitch_l_joint
+  - shoulder_roll_l_joint
+  - shoulder_yaw_l_joint
+  - elbow_pitch_l_joint
+  - shoulder_pitch_r_joint
+  - shoulder_roll_r_joint
+  - shoulder_yaw_r_joint
+  - elbow_pitch_r_joint
+shared_joint_map:
+  - {name: pelvis, robot_link: pelvis, smpl_joint: 0}
+  - {name: left_hip, robot_link: hip_roll_l_link, smpl_joint: 1}
+  - {name: left_knee, robot_link: knee_pitch_l_link, smpl_joint: 4}
+  - {name: left_ankle, robot_link: ankle_pitch_l_link, smpl_joint: 7}
+  - {name: left_foot, robot_link: ankle_roll_l_link, smpl_joint: 10, local_offset: [0.15, 0.0, -0.042]}
+  - {name: right_hip, robot_link: hip_roll_r_link, smpl_joint: 2}
+  - {name: right_knee, robot_link: knee_pitch_r_link, smpl_joint: 5}
+  - {name: right_ankle, robot_link: ankle_pitch_r_link, smpl_joint: 8}
+  - {name: right_foot, robot_link: ankle_roll_r_link, smpl_joint: 11, local_offset: [0.15, 0.0, -0.042]}
+  - {name: torso, robot_link: pelvis, smpl_joint: 6, local_offset: [0.0, 0.0, 0.20847749]}
+  - {name: left_shoulder, robot_link: shoulder_roll_l_link, smpl_joint: 16}
+  - {name: left_elbow, robot_link: elbow_pitch_l_link, smpl_joint: 18}
+  - {name: left_wrist, robot_link: elbow_pitch_l_link, smpl_joint: 20, local_offset: [0.02, 0.0, -0.12]}
+  - {name: left_hand, robot_link: elbow_pitch_l_link, smpl_joint: 22, local_offset: [0.02, 0.0, -0.24]}
+  - {name: right_shoulder, robot_link: shoulder_roll_r_link, smpl_joint: 17}
+  - {name: right_elbow, robot_link: elbow_pitch_r_link, smpl_joint: 19}
+  - {name: right_wrist, robot_link: elbow_pitch_r_link, smpl_joint: 21, local_offset: [0.02, 0.0, -0.12]}
+  - {name: right_hand, robot_link: elbow_pitch_r_link, smpl_joint: 23, local_offset: [0.02, 0.0, -0.24]}
+tail_shared_indices: [4, 8, 12, 13, 16, 17]
+shared_joint_parents: [-1, 0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 12, 9, 14, 15, 16]
+gamp_edge_scale: [1.00000000, 0.78370106, 1.22714644, 0.99854531, 1.15983989, 0.79713798, 1.20206486, 0.99759405, 1.15539005, 1.91178447, 0.82973864, 1.07399764, 0.48779504, 1.39941678, 0.82063460, 1.10087454, 0.47618891, 1.40404289]
+torso_spine2_proxy_alpha: 0.5441401
+neutral_dof: null

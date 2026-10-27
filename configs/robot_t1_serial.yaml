@@ -1,0 +1,56 @@
+name: t1_serial
+xml_path: assets/robot/t1_serial/t1_serial.urdf
+dof: 23
+root_body: Trunk
+model_to_xml_dof: null
+model_dof_order:
+  - AAHead_yaw
+  - Head_pitch
+  - Left_Shoulder_Pitch
+  - Left_Shoulder_Roll
+  - Left_Elbow_Pitch
+  - Left_Elbow_Yaw
+  - Right_Shoulder_Pitch
+  - Right_Shoulder_Roll
+  - Right_Elbow_Pitch
+  - Right_Elbow_Yaw
+  - Waist
+  - Left_Hip_Pitch
+  - Left_Hip_Roll
+  - Left_Hip_Yaw
+  - Left_Knee_Pitch
+  - Left_Ankle_Pitch
+  - Left_Ankle_Roll
+  - Right_Hip_Pitch
+  - Right_Hip_Roll
+  - Right_Hip_Yaw
+  - Right_Knee_Pitch
+  - Right_Ankle_Pitch
+  - Right_Ankle_Roll
+shared_joint_map:
+  - {name: pelvis, robot_link: Trunk, smpl_joint: 0}
+  - {name: left_hip, robot_link: Hip_Pitch_Left, smpl_joint: 1}
+  - {name: left_knee, robot_link: Shank_Left, smpl_joint: 4}
+  - {name: left_ankle, robot_link: Ankle_Cross_Left, smpl_joint: 7}
+  - {name: left_foot, robot_link: left_foot_link, smpl_joint: 10, local_offset: [0.0100, 0.0, -0.0300]}
+  - {name: right_hip, robot_link: Hip_Pitch_Right, smpl_joint: 2}
+  - {name: right_knee, robot_link: Shank_Right, smpl_joint: 5}
+  - {name: right_ankle, robot_link: Ankle_Cross_Right, smpl_joint: 8}
+  - {name: right_foot, robot_link: right_foot_link, smpl_joint: 11, local_offset: [0.0100, 0.0, -0.0300]}
+  - {name: torso, robot_link: Waist, smpl_joint: 6}
+  - {name: left_shoulder, robot_link: AL1, smpl_joint: 16}
+  - {name: left_elbow, robot_link: AL3, smpl_joint: 18}
+  - {name: left_wrist, robot_link: left_hand_link, smpl_joint: 20}
+  - {name: left_hand, robot_link: left_hand_link, smpl_joint: 22, local_offset: [0.0, 0.13, 0.0]}
+  - {name: right_shoulder, robot_link: AR1, smpl_joint: 17}
+  - {name: right_elbow, robot_link: AR3, smpl_joint: 19}
+  - {name: right_wrist, robot_link: right_hand_link, smpl_joint: 21}
+  - {name: right_hand, robot_link: right_hand_link, smpl_joint: 23, local_offset: [0.0, -0.13, 0.0]}
+tail_shared_indices: [4, 8, 12, 13, 16, 17]
+shared_joint_parents: [-1, 0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 12, 9, 14, 15, 16]
+gamp_edge_scale: [1.00000000, 1.46701499, 0.62706154, 0.69898169, 0.32147484, 1.49216766, 0.61435261, 0.69831456, 0.32024149, 0.50185551, 1.31066653, 0.41129178, 0.58981961, 1.51603482, 1.29628567, 0.42158382, 0.57578601, 1.52104644]
+torso_spine2_proxy_alpha: 0.5441401
+neutral_dof: null
+foot_grounding_meshes:
+  left_foot: {robot_link: left_foot_link, mesh_path: assets/robot/t1_serial/meshes/left_foot_link.STL}
+  right_foot: {robot_link: right_foot_link, mesh_path: assets/robot/t1_serial/meshes/right_foot_link.STL}

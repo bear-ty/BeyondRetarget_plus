@@ -1,0 +1,60 @@
+name: atlas_v4
+xml_path: assets/robot/atlas_v4/atlas_v4.urdf
+dof: 30
+root_body: pelvis
+model_to_xml_dof: null
+model_dof_order:
+  - back_bkz
+  - back_bky
+  - back_bkx
+  - l_arm_shz
+  - l_arm_shx
+  - l_arm_ely
+  - l_arm_elx
+  - l_arm_wry
+  - l_arm_wrx
+  - l_arm_wry2
+  - neck_ry
+  - r_arm_shz
+  - r_arm_shx
+  - r_arm_ely
+  - r_arm_elx
+  - r_arm_wry
+  - r_arm_wrx
+  - r_arm_wry2
+  - l_leg_hpz
+  - l_leg_hpx
+  - l_leg_hpy
+  - l_leg_kny
+  - l_leg_aky
+  - l_leg_akx
+  - r_leg_hpz
+  - r_leg_hpx
+  - r_leg_hpy
+  - r_leg_kny
+  - r_leg_aky
+  - r_leg_akx
+shared_joint_map:
+  - {name: pelvis, robot_link: pelvis, smpl_joint: 0}
+  - {name: left_hip, robot_link: l_uleg, smpl_joint: 1}
+  - {name: left_knee, robot_link: l_lleg, smpl_joint: 4}
+  - {name: left_ankle, robot_link: l_talus, smpl_joint: 7}
+  - {name: left_foot, robot_link: l_foot, smpl_joint: 10, local_offset: [0.1225, 0.0, -0.0641]}
+  - {name: right_hip, robot_link: r_uleg, smpl_joint: 2}
+  - {name: right_knee, robot_link: r_lleg, smpl_joint: 5}
+  - {name: right_ankle, robot_link: r_talus, smpl_joint: 8}
+  - {name: right_foot, robot_link: r_foot, smpl_joint: 11, local_offset: [0.1225, 0.0, -0.0641]}
+  - {name: torso, robot_link: utorso, smpl_joint: 6}
+  - {name: left_shoulder, robot_link: l_clav, smpl_joint: 16}
+  - {name: left_elbow, robot_link: l_larm, smpl_joint: 18}
+  - {name: left_wrist, robot_link: l_lfarm, smpl_joint: 20}
+  - {name: left_hand, robot_link: l_hand, smpl_joint: 22, local_offset: [0.0, -0.15, 0.01]}
+  - {name: right_shoulder, robot_link: r_clav, smpl_joint: 17}
+  - {name: right_elbow, robot_link: r_larm, smpl_joint: 19}
+  - {name: right_wrist, robot_link: r_lfarm, smpl_joint: 21}
+  - {name: right_hand, robot_link: r_hand, smpl_joint: 23, local_offset: [0.0, -0.15, 0.01]}
+tail_shared_indices: [4, 8, 12, 13, 16, 17]
+shared_joint_parents: [-1, 0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 12, 9, 14, 15, 16]
+gamp_edge_scale: [1.00000000, 1.20721584, 1.00137054, 1.05346534, 1.02944867, 1.22791863, 0.98108924, 1.05245988, 1.02549908, 1.94746304, 2.04093339, 1.86053210, 1.22916925, 1.75315442, 2.01853227, 1.90702088, 1.19776011, 1.75894990]
+torso_spine2_proxy_alpha: 0.5441401
+neutral_dof: null

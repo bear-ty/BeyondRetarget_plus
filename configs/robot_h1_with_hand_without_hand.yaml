@@ -1,0 +1,212 @@
+name: h1_with_hand_without_hand
+xml_path: assets/robot/h1_with_hand_without_hand/h1_with_hand_without_hand.urdf
+dof: 21
+root_body: pelvis
+model_to_xml_dof:
+- 0
+- 1
+- 2
+- 3
+- 4
+- 5
+- 6
+- 7
+- 8
+- 9
+- 10
+- 11
+- 12
+- 13
+- 14
+- 15
+- 28
+- 29
+- 30
+- 31
+- 32
+model_dof_order:
+- left_hip_yaw_joint
+- left_hip_roll_joint
+- left_hip_pitch_joint
+- left_knee_joint
+- left_ankle_joint
+- right_hip_yaw_joint
+- right_hip_roll_joint
+- right_hip_pitch_joint
+- right_knee_joint
+- right_ankle_joint
+- torso_joint
+- left_shoulder_pitch_joint
+- left_shoulder_roll_joint
+- left_shoulder_yaw_joint
+- left_elbow_joint
+- left_hand_joint
+- right_shoulder_pitch_joint
+- right_shoulder_roll_joint
+- right_shoulder_yaw_joint
+- right_elbow_joint
+- right_hand_joint
+shared_joint_map:
+- name: pelvis
+  robot_link: pelvis
+  smpl_joint: 0
+- name: left_hip
+  robot_link: left_hip_roll_link
+  smpl_joint: 1
+- name: left_knee
+  robot_link: left_knee_link
+  smpl_joint: 4
+- name: left_ankle
+  robot_link: left_ankle_link
+  smpl_joint: 7
+- name: left_foot
+  robot_link: left_ankle_link
+  smpl_joint: 10
+  local_offset:
+  - 0.19
+  - 0.0
+  - -0.05
+- name: right_hip
+  robot_link: right_hip_roll_link
+  smpl_joint: 2
+- name: right_knee
+  robot_link: right_knee_link
+  smpl_joint: 5
+- name: right_ankle
+  robot_link: right_ankle_link
+  smpl_joint: 8
+- name: right_foot
+  robot_link: right_ankle_link
+  smpl_joint: 11
+  local_offset:
+  - 0.19
+  - 0.0
+  - -0.05
+- name: torso
+  robot_link: torso_link
+  smpl_joint: 6
+- name: left_shoulder
+  robot_link: left_shoulder_roll_link
+  smpl_joint: 16
+- name: left_elbow
+  robot_link: left_elbow_link
+  smpl_joint: 18
+- name: left_wrist
+  robot_link: left_hand_link
+  smpl_joint: 20
+- name: left_hand
+  robot_link: L_middle_proximal
+  smpl_joint: 22
+  local_offset:
+  - 0.0
+  - 0.0
+  - 0.0
+- name: right_shoulder
+  robot_link: right_shoulder_roll_link
+  smpl_joint: 17
+- name: right_elbow
+  robot_link: right_elbow_link
+  smpl_joint: 19
+- name: right_wrist
+  robot_link: right_hand_link
+  smpl_joint: 21
+- name: right_hand
+  robot_link: R_middle_proximal
+  smpl_joint: 23
+  local_offset:
+  - 0.0
+  - 0.0
+  - 0.0
+tail_shared_indices:
+- 4
+- 8
+- 12
+- 13
+- 16
+- 17
+shared_joint_parents:
+- -1
+- 0
+- 1
+- 2
+- 3
+- 0
+- 5
+- 6
+- 7
+- 0
+- 9
+- 10
+- 11
+- 12
+- 9
+- 14
+- 15
+- 16
+gamp_edge_scale:
+- 1.0
+- 1.72890664
+- 1.10487308
+- 0.99854531
+- 1.4628859
+- 1.75854957
+- 1.08248013
+- 0.99759227
+- 1.45727339
+- 0.97283203
+- 1.82250193
+- 1.2733353
+- 1.04714475
+- 1.64078699
+- 1.80250513
+- 1.30519884
+- 1.02223
+- 1.64621101
+torso_spine2_proxy_alpha: 0.5441401
+neutral_dof:
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+- 0.0
+xml_dof: 45

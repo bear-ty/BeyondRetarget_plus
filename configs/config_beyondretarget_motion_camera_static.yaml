@@ -1,0 +1,23 @@
+base_config: configs/config_beyondretarget_motion_g1.yaml
+architecture: decoder6_motion_v6
+camera_conditioned: true
+static_temporal_layers: 2
+static_dropout: 0.1
+motion_init_weight: 0.85
+experiment: TRAM_robot_decoder6_motion_v6
+output_root: outputs/training
+feature_cache: outputs/feature_cache/vimo_decoder46_16f_v2
+label_root: outputs/static_labels/world_static6_truecamera_v2
+sources: [bedlam_vid, h36m_vid]
+source_weights: [0.7647058824, 0.2352941176]
+samples_per_epoch: 173568
+batch_per_gpu: 512
+global_batch: 1536
+workers: 4
+epochs: 60
+lr: 0.0002
+weight_decay: 0.0001
+grad_clip: 0.5
+seed: 42
+precision: bf16
+log_every: 25

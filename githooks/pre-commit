@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Defense in depth: .gitignore prevents normal accidental adds; this hook
+# rejects large or model-like files even when added with `git add -f`.
+max_bytes=$((25 * 1024 * 1024))
+bad=0
+while IFS= read -r -d '' path; do
+  # Measure the staged blob so a Git LFS pointer passes instead of its large
+  # working-tree asset.
+  size=$(git cat-file -s ":$path")
+  case "$path" in
+    *.pt|*.pth|*.pth.tar|*.ckpt|*.onnx|*.safetensors|*.pkl|*.joblib|*.npy|*.npz|*.h5|*.hdf5|*.zip|*.tar|*.tar.gz)
+      echo "Refusing model/data/archive file: $path" >&2
+      bad=1
+      ;;
+  esac
+  if (( size > max_bytes )); then
+    echo "Refusing file larger than 25 MiB: $path ($size bytes)" >&2
+    bad=1
+  fi
+done < <(git diff --cached --name-only -z --diff-filter=ACM | while IFS= read -r -d '' path; do
+  test -f "$path" && printf '%s\0' "$path"
+done)
+
+if (( bad )); then
+  echo 'Upload large assets through Google Drive/asset manifest instead of Git.' >&2
+  exit 1
+fi

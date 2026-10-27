@@ -1,0 +1,102 @@
+# Project specific data and submodule
+.vscode/
+**/.DS_Store
+data/pretrain/*.pth
+data/pretrain/*.pth.tar
+data/pretrain/*.ckpt
+data/pretrain/*/*.ckpt
+data/smpl/SMPL_*.pkl
+data/*.pkl
+*.mov
+*.mp4
+example_video/
+results/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+# External runtime assets are never committed by default. Robot descriptions
+# and the asset manifest are lightweight source files and are explicitly kept.
+assets/*
+!assets/README.md
+!assets/robot/
+!assets/robot/**/
+!assets/robot/**/*.urdf
+!assets/robot/**/*.xml
+!assets/robot/**/README.md
+!assets/demos/
+!assets/demos/**
+
+# Never commit model weights, checkpoints, archives, datasets, generated
+# features, or rendered outputs. Publish these through the documented asset
+# manifest/Google Drive workflow instead.
+*.pt
+*.pth
+*.pth.tar
+*.ckpt
+*.onnx
+*.safetensors
+*.bin
+*.zip
+*.tar
+*.tar.gz
+*.7z
+*.pkl
+*.joblib
+*.npy
+*.npz
+*.h5
+*.hdf5
+data/datasets/
+data/pretrain/
+data/smpl/
+outputs/
+output/
+experiments/
+logs/
+assets/checkpoints/
+assets/yolo/
+assets/robot/**/*.obj
+assets/robot/**/*.stl
+assets/robot/**/*.dae
+assets/robot/**/*.glb
+assets/robot/**/*.gltf
+assets/robot/**/*.fbx
+assets/robot/**/*.mtl
+
+# Local setup and downloaded dependency trees.
+.conda/
+.venv/
+thirdparty/Tracking-Anything-with-DEVA/
+*.partial
+*.tmp
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version

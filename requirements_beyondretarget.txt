@@ -1,0 +1,32 @@
+# Core TRAM + BeyondRetarget adapter requirements
+torch==2.3.0
+torchvision==0.18.0
+einops
+pytorch3d==0.7.6
+yacs
+PyYAML
+opencv-python
+scikit-image
+scipy
+mujoco
+smplx
+timm
+tensorboard
+imageio[ffmpeg]
+tqdm
+ultralytics
+
+# Optional full TRAM video frontend
+segment-anything
+open3d
+pyrender
+gdown
+pandas
+omegaconf
+torchmin
+ffmpeg-python
+matplotlib
+trimesh
+plyfile
+evo
+pycocotools

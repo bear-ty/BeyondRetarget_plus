@@ -1,0 +1,4 @@
+# Independent of hashed Stage 1 specs/XMLs. Native FK XML is NOT rewritten.
+# MuJoCo needs mesh files for compilation; use already-installed original assets.
+g1:
+  meshdir: assets/robot/g1/meshes

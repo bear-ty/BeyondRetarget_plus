@@ -1,0 +1,59 @@
+name: gr2v3_8_7_dummy_hand
+xml_path: assets/robot/gr2v3_8_7_dummy_hand/gr2v3_8_7_dummy_hand.urdf
+dof: 29
+root_body: base_link
+model_to_xml_dof: null
+model_dof_order:
+  - waist_yaw_joint
+  - head_yaw_joint
+  - head_pitch_joint
+  - left_shoulder_pitch_joint
+  - left_shoulder_roll_joint
+  - left_shoulder_yaw_joint
+  - left_elbow_pitch_joint
+  - left_wrist_yaw_joint
+  - left_wrist_pitch_joint
+  - left_wrist_roll_joint
+  - right_shoulder_pitch_joint
+  - right_shoulder_roll_joint
+  - right_shoulder_yaw_joint
+  - right_elbow_pitch_joint
+  - right_wrist_yaw_joint
+  - right_wrist_pitch_joint
+  - right_wrist_roll_joint
+  - left_hip_pitch_joint
+  - left_hip_roll_joint
+  - left_hip_yaw_joint
+  - left_knee_pitch_joint
+  - left_ankle_pitch_joint
+  - left_ankle_roll_joint
+  - right_hip_pitch_joint
+  - right_hip_roll_joint
+  - right_hip_yaw_joint
+  - right_knee_pitch_joint
+  - right_ankle_pitch_joint
+  - right_ankle_roll_joint
+shared_joint_map:
+  - {name: pelvis, robot_link: base_link, smpl_joint: 0}
+  - {name: left_hip, robot_link: left_thigh_roll_link, smpl_joint: 1}
+  - {name: left_knee, robot_link: left_shank_pitch_link, smpl_joint: 4}
+  - {name: left_ankle, robot_link: left_foot_pitch_link, smpl_joint: 7}
+  - {name: left_foot, robot_link: left_foot_roll_link, smpl_joint: 10, local_offset: [0.20, 0.0, -0.033]}
+  - {name: right_hip, robot_link: right_thigh_roll_link, smpl_joint: 2}
+  - {name: right_knee, robot_link: right_shank_pitch_link, smpl_joint: 5}
+  - {name: right_ankle, robot_link: right_foot_pitch_link, smpl_joint: 8}
+  - {name: right_foot, robot_link: right_foot_roll_link, smpl_joint: 11, local_offset: [0.20, 0.0, -0.033]}
+  - {name: torso, robot_link: torso_link, smpl_joint: 6}
+  - {name: left_shoulder, robot_link: left_upper_arm_roll_link, smpl_joint: 16}
+  - {name: left_elbow, robot_link: left_lower_arm_pitch_link, smpl_joint: 18}
+  - {name: left_wrist, robot_link: left_hand_yaw_link, smpl_joint: 20}
+  - {name: left_hand, robot_link: left_dummy_hand_link, smpl_joint: 22, local_offset: [0.0, 0.0, -0.055]}
+  - {name: right_shoulder, robot_link: right_upper_arm_roll_link, smpl_joint: 17}
+  - {name: right_elbow, robot_link: right_lower_arm_pitch_link, smpl_joint: 19}
+  - {name: right_wrist, robot_link: right_hand_yaw_link, smpl_joint: 21}
+  - {name: right_hand, robot_link: dummy_right_hand_link, smpl_joint: 23, local_offset: [0.0, 0.0, -0.055]}
+tail_shared_indices: [4, 8, 12, 13, 16, 17]
+shared_joint_parents: [-1, 0, 1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 12, 9, 14, 15, 16]
+gamp_edge_scale: [1.00000000, 1.92503585, 1.01662237, 1.01352359, 1.50931407, 1.95804150, 0.99601804, 1.01255626, 1.50352343, 0.84426940, 0.85878523, 0.97749458, 0.23466483, 3.04396520, 0.84936249, 1.00195510, 0.22908141, 3.05402707]
+torso_spine2_proxy_alpha: 0.5441401
+neutral_dof: null
