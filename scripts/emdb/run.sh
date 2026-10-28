@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 split=2
 cam_output_dir="results/emdb/camera"

@@ -25,7 +25,9 @@ def run_spec(img):
     if not checkpoint.is_file():
         raise FileNotFoundError(
             f'Missing SPEC/camcalib checkpoint: {checkpoint}. '
-            'Run scripts/download_models.sh after accepting the upstream terms.'
+            'After accepting the upstream terms, obtain it from the official TRAM resource '
+            'https://drive.google.com/file/d/1t4tO0OM5s8XDvAzPW-5HaOkQuV3dHBdO/view?usp=sharing '
+            'and place it at that path; scripts/download_models.sh intentionally skips it.'
         )
     spec = spec.load_ckpt(str(checkpoint)).to('cuda')
 

@@ -1,10 +1,14 @@
 """Validate source files, robot descriptions, and optional runtime assets."""
 
+from __future__ import annotations
+
 import argparse
 import hashlib
-import importlib.util
+import importlib
+from importlib import metadata
 import os
 from pathlib import Path
+import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,8 +40,11 @@ SUPPORTED_ROBOTS = {
 CORE_MODULES = {
     "torch": "torch",
     "torchvision": "torchvision",
+    "numpy": "numpy",
     "pytorch3d": "pytorch3d",
     "smplx": "smplx",
+    "chumpy": "chumpy",
+    "joblib": "joblib",
     "ultralytics": "ultralytics",
     "einops": "einops",
     "yaml": "PyYAML",
@@ -45,6 +52,7 @@ CORE_MODULES = {
     "skimage": "scikit-image",
     "scipy": "scipy",
     "mujoco": "mujoco",
+    "OpenGL": "PyOpenGL",
     "timm": "timm",
     "tensorboard": "tensorboard",
     "imageio_ffmpeg": "imageio[ffmpeg]",
@@ -58,13 +66,28 @@ FRONTEND_MODULES = {
     "gdown": "gdown",
     "pandas": "pandas",
     "omegaconf": "omegaconf",
-    "torchmin": "torchmin",
+    "torchmin": "pytorch-minimize",
     "ffmpeg": "ffmpeg-python",
     "matplotlib": "matplotlib",
     "trimesh": "trimesh",
     "plyfile": "plyfile",
     "evo": "evo",
     "pycocotools": "pycocotools",
+}
+
+EVALUATION_MODULES = {
+    "openpyxl": "openpyxl",
+}
+
+EXPECTED_VERSIONS = {
+    "torch": "2.3.0",
+    "torchvision": "0.18.0",
+    "numpy": "1.23.5",
+    "opencv-python": "4.11.0.86",
+    "scikit-image": "0.24.0",
+    "scipy": "1.15.3",
+    "chumpy": "0.70",
+    "PyOpenGL": "3.1.10",
 }
 
 
@@ -80,6 +103,109 @@ def check_path(path: Path, label: str, required: bool = True) -> bool:
     state = "OK" if exists else ("MISSING" if required else "optional")
     print(f"[{state}] {label}: {path}")
     return exists or not required
+
+
+def check_module(module_name: str, package: str, category: str = "Python module") -> bool:
+    try:
+        importlib.import_module(module_name)
+    except Exception as exc:
+        print(f"[MISSING] {category}: {module_name} ({package}): {type(exc).__name__}: {exc}")
+        return False
+    print(f"[OK] {category}: {module_name} ({package})")
+    return True
+
+
+def _version_matches(actual: str, expected: str) -> bool:
+    return actual == expected or actual.startswith(expected + "+")
+
+
+def check_distribution_version(distribution: str, expected: str, runtime_module: str | None = None) -> bool:
+    ok = True
+    try:
+        installed = metadata.version(distribution)
+    except metadata.PackageNotFoundError:
+        print(f"[MISSING] Python distribution: {distribution} (expected {expected})")
+        return False
+    if _version_matches(installed, expected):
+        print(f"[OK] Python distribution: {distribution}=={installed}")
+    else:
+        print(f"[MISSING] Python distribution: {distribution}=={installed}; expected {expected}")
+        ok = False
+    if runtime_module is not None:
+        try:
+            module = importlib.import_module(runtime_module)
+            runtime_version = str(module.__version__)
+        except Exception as exc:
+            print(f"[MISSING] Runtime version for {distribution}: {type(exc).__name__}: {exc}")
+            return False
+        if runtime_version != installed:
+            location = getattr(module, "__file__", "<unknown>")
+            print(
+                f"[MISSING] {distribution} distribution/runtime mismatch: "
+                f"{installed} != {runtime_version} ({location})"
+            )
+            ok = False
+    return ok
+
+
+def resolve_robot_path(value: str) -> Path:
+    path = Path(value)
+    if path.is_absolute():
+        return path
+    if path.parts[:2] == ("assets", "robot"):
+        robot_root = Path(os.environ.get("BRPLUS_ROBOT_ROOT", str(ROOT / "assets" / "robot")))
+        return robot_root.joinpath(*path.parts[2:])
+    return ROOT / path
+
+
+def _resolve_mesh_paths(xml_path: Path):
+    root = ET.parse(xml_path).getroot()
+    if root.tag == "robot":
+        compiler = root.find("mujoco/compiler")
+        mesh_dir = Path(compiler.attrib.get("meshdir", "")) if compiler is not None else Path()
+        for mesh in root.findall(".//mesh"):
+            filename = mesh.attrib.get("filename")
+            if not filename or filename.startswith("package://"):
+                continue
+            path = Path(filename)
+            yield path if path.is_absolute() else xml_path.parent / mesh_dir / path
+        return
+    if root.tag == "mujoco":
+        compiler = root.find("compiler")
+        mesh_dir = Path(compiler.attrib.get("meshdir", "")) if compiler is not None else Path()
+        assets = root.find("asset")
+        if assets is None:
+            return
+        for mesh in assets.findall("mesh"):
+            filename = mesh.attrib.get("file")
+            if not filename:
+                continue
+            path = Path(filename)
+            yield path if path.is_absolute() else xml_path.parent / mesh_dir / path
+
+
+def check_robot_description(spec: dict) -> bool:
+    name = str(spec.get("name", "robot"))
+    xml_path = resolve_robot_path(str(spec["xml_path"]))
+    ok = check_file(xml_path, f"{name} robot description")
+    if xml_path.is_file():
+        try:
+            mesh_paths = list(_resolve_mesh_paths(xml_path))
+        except Exception as exc:
+            print(f"[MISSING] {name} robot XML mesh validation: {exc}")
+            ok = False
+        else:
+            missing = [path for path in mesh_paths if not path.is_file()]
+            if missing:
+                suffix = f" (+ {len(missing) - 1} more)" if len(missing) > 1 else ""
+                print(f"[MISSING] {name} robot mesh: {missing[0]}{suffix}")
+                ok = False
+            else:
+                print(f"[OK] {name} robot meshes: {len(mesh_paths)} referenced files")
+    for side, item in dict(spec.get("foot_grounding_meshes", {})).items():
+        mesh_path = resolve_robot_path(str(item["mesh_path"]))
+        ok &= check_file(mesh_path, f"{name} {side} foot grounding mesh")
+    return ok
 
 
 def sha256(path: Path) -> str:
@@ -131,7 +257,7 @@ def main() -> int:
     parser.add_argument(
         "--require-core-checkpoints",
         action="store_true",
-        help="Require the complete Plus bundle and YOLO weights used by core inference.",
+        help="Require the complete Plus bundle and YOLO detection/pose weights used by core inference.",
     )
     parser.add_argument(
         "--require-frontend",
@@ -139,9 +265,14 @@ def main() -> int:
         help="Also require optional TRAM camera/frontend Python packages.",
     )
     parser.add_argument(
+        "--require-evaluation",
+        action="store_true",
+        help="Also require optional evaluation/export Python packages.",
+    )
+    parser.add_argument(
         "--require-frontend-checkpoints",
         action="store_true",
-        help="Require DROID and SAM weights used by the optional camera frontend.",
+        help="Require DROID, SAM, DEVA, and camcalib weights used by the optional camera frontend.",
     )
     parser.add_argument("--require-smpl", action="store_true")
     args = parser.parse_args()
@@ -155,7 +286,7 @@ def main() -> int:
         import yaml
         for config in SUPPORTED_ROBOTS.values():
             spec = yaml.safe_load((ROOT / config).read_text())
-            ok &= check_file(ROOT / spec["xml_path"], f"{spec['name']} robot description")
+            ok &= check_robot_description(spec)
     except Exception as exc:
         print(f"[MISSING] YAML validation: {exc}")
         ok = False
@@ -173,15 +304,17 @@ def main() -> int:
         "SAM": ROOT / "data/pretrain/sam_vit_h_4b8939.pth",
         "DEVA": ROOT / "data/pretrain/DEVA-propagation.pth",
         "YOLO": ROOT / "assets/yolo/yolov8x.pt",
+        "YOLO pose": ROOT / "assets/yolo/yolov8x-pose.pt",
+        "camcalib": ROOT / "data/pretrain/camcalib_sa_biased_l2.ckpt",
     }
     # The release bundle embeds the frozen VIMO/TRAM human backbone.  A
     # standalone VIMO file is only needed for feature-cache generation and
     # training, not for the published inference path.
     required_checkpoints = {
-        "YOLO", "Plus eight-robot bundle",
+        "YOLO", "YOLO pose", "Plus eight-robot bundle",
     } if args.require_core_checkpoints else set()
     if args.require_frontend_checkpoints:
-        required_checkpoints.update({"DROID", "SAM", "DEVA"})
+        required_checkpoints.update({"DROID", "SAM", "DEVA", "camcalib"})
     if args.require_checkpoints:
         required_checkpoints.update(checkpoints.keys())
     for label, path in checkpoints.items():
@@ -190,14 +323,16 @@ def main() -> int:
         else:
             ok &= check_file(path, label, required=label in required_checkpoints)
     for module, package in CORE_MODULES.items():
-        available = importlib.util.find_spec(module) is not None
-        print(f"[{'OK' if available else 'MISSING'}] Python module: {module} ({package})")
-        ok &= available
+        ok &= check_module(module, package)
+    for distribution, expected in EXPECTED_VERSIONS.items():
+        runtime_module = "numpy" if distribution == "numpy" else None
+        ok &= check_distribution_version(distribution, expected, runtime_module=runtime_module)
     if args.require_frontend:
         for module, package in FRONTEND_MODULES.items():
-            available = importlib.util.find_spec(module) is not None
-            print(f"[{'OK' if available else 'MISSING'}] Frontend module: {module} ({package})")
-            ok &= available
+            ok &= check_module(module, package, category="Frontend module")
+    if args.require_evaluation:
+        for module, package in EVALUATION_MODULES.items():
+            ok &= check_module(module, package, category="Evaluation module")
     print("Installation check passed." if ok else "Installation check found required items that are missing.")
     return 0 if ok else 1
 

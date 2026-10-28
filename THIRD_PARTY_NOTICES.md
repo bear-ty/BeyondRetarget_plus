@@ -17,7 +17,7 @@ redistributing any checkpoint, dataset, model file, or robot asset.
 | SPEC/camcalib | camera FOV/gravity calibration for moving-camera preprocessing | `thirdparty/camcalib/` and upstream TRAM resource links | Source headers retain the Max-Planck proprietary notice; use only under a valid upstream license; checkpoint is downloaded separately |
 | PARE/TRAM Pascal occlusion helper | optional training-time synthetic occlusion | `lib/datasets/coco_occlusion.py`, adapted from [isarandi/synthetic-occlusion](https://github.com/isarandi/synthetic-occlusion) | Upstream MPG notice is retained; Pascal-derived resource is downloaded separately and remains subject to its own terms |
 | PyTorch3D | geometry and rotation operators | [github.com/facebookresearch/pytorch3d](https://github.com/facebookresearch/pytorch3d) | BSD-style upstream license |
-| Ultralytics YOLO | optional person-box extraction | [ultralytics.com/license](https://www.ultralytics.com/license) | AGPL-3.0 or commercial terms; do not redistribute weights without compliance |
+| Ultralytics YOLO | person-box and COCO17 pose extraction | [ultralytics.com/license](https://www.ultralytics.com/license) | AGPL-3.0 or commercial terms; do not redistribute weights without compliance |
 | SMPL / SMPLify | body model and fitting resources | [SMPL](https://smpl.is.tue.mpg.de), [SMPLify](https://smplify.is.tue.mpg.de) | Registration/gated terms; users download directly |
 | EMDB, BEDLAM, H36M, 3DPW | training and evaluation data | Official dataset providers | Dataset-specific terms; not included here |
 | Robot URDF/MJCF and meshes | forward kinematics and visualization | Individual robot providers | Provider-specific terms; redistribute `robot.zip` only after permission |
@@ -27,7 +27,9 @@ redistributing any checkpoint, dataset, model file, or robot asset.
 The SPEC/camcalib source is included in `thirdparty/camcalib/` in the same
 layout used by TRAM. Every upstream Max-Planck header is retained. The source
 is not relicensed by this repository and requires a valid upstream license;
-the checkpoint is not committed and is downloaded by `scripts/download_models.sh`.
+the checkpoint is not committed and must be obtained separately from the
+official TRAM resource after accepting those terms; `scripts/download_models.sh`
+intentionally does not download it.
 
 The synthetic occlusion helper inherited from the PARE/TRAM training stack is
 included in `lib/datasets/coco_occlusion.py` with its original MPG notice and

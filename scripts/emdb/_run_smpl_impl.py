@@ -36,6 +36,9 @@ for root in roots:
     if ann[f'emdb{spl}']:
         emdb.append(root)
 
+if not emdb:
+    parser.error(f'No EMDB sequences selected: data_root={args.data_root!r}, split={spl}')
+
 
 # Save folder
 savefolder = args.output_dir

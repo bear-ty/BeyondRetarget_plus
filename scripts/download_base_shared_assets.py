@@ -120,6 +120,33 @@ def _materialized_robot_archive(members: list[zipfile.ZipInfo], assets_root: Pat
     return True
 
 
+def _fill_missing_robot_tree(source: Path, target: Path) -> None:
+    """Copy missing provider files without replacing canonical descriptions."""
+    if source.is_symlink() or target.is_symlink():
+        raise RuntimeError(f"Refusing symlinked robot alias path: {source} -> {target}")
+    for current, directory_names, file_names in os.walk(source, followlinks=False):
+        current_path = Path(current)
+        for name in directory_names:
+            if (current_path / name).is_symlink():
+                raise RuntimeError(f"Refusing symlinked robot directory: {current_path / name}")
+        target_dir = target / current_path.relative_to(source)
+        if target_dir.is_symlink():
+            raise RuntimeError(f"Refusing symlinked robot directory: {target_dir}")
+        if target_dir.exists() and not target_dir.is_dir():
+            raise RuntimeError(f"Robot alias target is not a directory: {target_dir}")
+        target_dir.mkdir(parents=True, exist_ok=True)
+        for name in file_names:
+            source_file = current_path / name
+            target_file = target_dir / name
+            if source_file.is_symlink() or target_file.is_symlink():
+                raise RuntimeError(f"Refusing symlinked robot path: {source_file} -> {target_file}")
+            if target_file.exists():
+                if not target_file.is_file():
+                    raise RuntimeError(f"Robot alias target is not a file: {target_file}")
+                continue
+            shutil.copy2(source_file, target_file)
+
+
 def ensure_robot(entry: dict[str, object], force: bool) -> None:
     archive_path = ROOT / "assets/robot.zip"
     robot_root = ROOT / "assets/robot"
@@ -178,9 +205,10 @@ def ensure_robot(entry: dict[str, object], force: bool) -> None:
         target = robot_root / target_dir
         source_xml = source / source_file
         target_xml = target / target_file
+        if source.is_dir() and source != target:
+            _fill_missing_robot_tree(source, target)
         if source_xml.is_file() and not target_xml.is_file():
-            if not target.exists():
-                shutil.copytree(source, target)
+            target_xml.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source_xml, target_xml)
 
 

@@ -17,16 +17,30 @@ import cv2
 import numpy as np
 import torch
 from lib.util.beyondretarget.experiment import sha256_file
+from lib.util.beyondretarget.video_tracks import load_box_track
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--video',required=True);p.add_argument('--bbox-pt',required=True)
+    p.add_argument('--video',required=True)
+    source=p.add_mutually_exclusive_group(required=True)
+    source.add_argument('--boxes',help='Single-person NPZ from scripts/extract_video_boxes.py')
+    source.add_argument('--bbox-pt',help='Legacy PT dictionary containing bbx_xyxy')
     p.add_argument('--output-dir',required=True)
     p.add_argument('--camera-mode',choices=['moving','static','auto'],default='moving')
-    args=p.parse_args();out=Path(args.output_dir);out.mkdir(parents=True,exist_ok=True)
+    args=p.parse_args()
+    bbox_source=args.boxes or args.bbox_pt
+    if args.boxes:
+        track=load_box_track(args.boxes,require_complete=True)
+        boxes=track['boxes'];track_valid=track['valid']
+        bbox_payload={'bbx_xyxy':torch.from_numpy(boxes)}
+    else:
+        bbox_payload=torch.load(args.bbox_pt,map_location='cpu',weights_only=False)
+        boxes=bbox_payload['bbx_xyxy'].detach().cpu().numpy().astype(np.float32)
+        if boxes.ndim!=2 or boxes.shape[1]!=4 or not np.isfinite(boxes).all():
+            raise ValueError('bbx_xyxy must be a finite [T,4] tensor')
+        track_valid=np.ones(len(boxes),dtype=bool)
+    out=Path(args.output_dir);out.mkdir(parents=True,exist_ok=True)
     torch.set_num_threads(4)
-    bbox_payload=torch.load(args.bbox_pt,map_location='cpu',weights_only=False)
-    boxes=bbox_payload['bbx_xyxy'].numpy()
     frames=out/'images';frames.mkdir(exist_ok=True)
     cap=cv2.VideoCapture(args.video);fps=cap.get(cv2.CAP_PROP_FPS);n=0
     while True:
@@ -79,13 +93,13 @@ def main():
         (out/'camera_provenance.json').write_text(json.dumps(dict(
             requested_mode=args.camera_mode,auto_detected_static=bool(detected_static),used_static=bool(is_static),
             method='official_TRAM_masked_DROID_ZoeDepth_SPEC',segmentation='official_SAM_vit_h_target_bbox',
-            bbox_source=str(Path(args.bbox_pt).resolve()),bbox_sha256=sha256_file(args.bbox_pt),
+            bbox_source=str(Path(bbox_source).resolve()),bbox_sha256=sha256_file(bbox_source),
             input_video_sha256=sha256_file(args.video),frames=n,fps=fps,
             checkpoint_sha256={name:sha256_file(ROOT/'data/pretrain'/name) for name in
                                ['droid.pth','camcalib_sa_biased_l2.ckpt','sam_vit_h_4b8939.pth']}
         ),indent=2))
     camera=np.load(out/'camera.npy',allow_pickle=True).item()
-    np.savez_compressed(out/'boxes.npz',boxes=boxes,valid=np.ones(n,bool),frame=np.arange(n),
+    np.savez_compressed(out/'boxes.npz',boxes=boxes,valid=track_valid,frame=np.arange(n),
                         img_focal=camera['img_focal'],img_center=camera['img_center'])
     print(json.dumps(dict(complete=True,frames=n,fps=fps,output=str(out)),indent=2),flush=True)
 

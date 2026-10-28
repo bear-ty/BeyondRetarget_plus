@@ -20,13 +20,17 @@ robot/
   tienkung/tienkung.urdf
 ```
 
-The complete meshes must be beside the matching URDF/MJCF files. Download the
-shared archive from the [BeyondRetarget Base Google Drive folder](https://drive.google.com/drive/folders/12ySWLbVhF8WEGyLR0Ll09DmZm8rZE0Tg),
-then expand `robot.zip` to the top-level `assets/robot/` directory:
+The complete meshes must be beside the matching URDF/MJCF files. Install the
+shared archive from the [BeyondRetarget Base Google Drive folder](https://drive.google.com/drive/folders/12ySWLbVhF8WEGyLR0Ll09DmZm8rZE0Tg)
+and other release assets with:
 
 ```bash
-unzip robot.zip -d assets/
+python scripts/download_base_shared_assets.py
 ```
+
+The downloader handles both provider directory names (such as `unitree_g1`)
+and the canonical Plus names used by the configs. It recursively fills missing
+files without overwriting the canonical XML/URDF files tracked in this tree.
 
 Before redistributing that archive, confirm the license and redistribution
 rights for every robot provider. The project CC BY-NC license does not replace
@@ -39,12 +43,16 @@ Core Plus inference normally needs:
 ```text
 data/smpl/SMPL_NEUTRAL.pkl              # gated SMPL model file
 assets/yolo/yolov8x.pt                  # only for the included box extractor
+assets/yolo/yolov8x-pose.pt             # only for the included COCO17 extractor
 assets/checkpoints/beyondretarget_plus_8robots.pth
                                         # complete VIMO backbone + eight heads + static head
 ```
 
 The shared Base Google Drive folder also contains `beyondretarget_plus_8robots.pth`, so
-the default setup script downloads all three shared assets from the same link.
+the default setup script downloads the three shared assets from the same link.
+The pose checkpoint is downloaded separately from the official Ultralytics
+release linked in the root README; SPEC/camcalib remains a separately licensed
+external download as documented there.
 This eight-robot bundle is a complete inference checkpoint. It embeds the
 frozen TRAM/VIMO backbone, eight robot adapter heads, and the shared static
 head, so Plus inference does not need a separate VIMO checkpoint. It intentionally has no

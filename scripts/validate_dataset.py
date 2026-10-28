@@ -18,14 +18,14 @@ if str(PROJECT_ROOT) not in sys.path:
 from lib.util.contact_labels import normalize_contact_lr
 
 
-REQUIRED_FILES = ("vit_features.pt", "keypoints.npy", "smpl.npy")
+REQUIRED_FILES = ("keypoints.npy", "smpl.npy")
 
 
 def discover_sequences(root: Path) -> list[Path]:
     """Find prepared, raw, and empty sequences without descending into frame folders."""
     if not root.is_dir():
         raise ValueError(f"Dataset directory does not exist: {root}")
-    markers = set(REQUIRED_FILES) | {"contact.npy", "bbox.npy"}
+    markers = set(REQUIRED_FILES) | {"vit_features.pt", "contact.npy", "bbox.npy"}
     sequences = []
     visited = set()
 
@@ -47,7 +47,9 @@ def discover_sequences(root: Path) -> list[Path]:
     return sorted(sequences)
 
 
-def validate_sequence(sequence_dir: Path, require_contact: bool = False) -> tuple[list[str], np.ndarray | None]:
+def validate_sequence(
+    sequence_dir: Path, require_contact: bool = False, require_vit_features: bool = False
+) -> tuple[list[str], np.ndarray | None]:
     errors = []
     arrays = {}
     lengths = {}
@@ -79,7 +81,11 @@ def validate_sequence(sequence_dir: Path, require_contact: bool = False) -> tupl
         except (TypeError, ValueError) as exc:
             errors.append(f"{name}: {exc}")
 
-    features = load("vit_features.pt", lambda path: torch.load(path, map_location="cpu", weights_only=True))
+    features = load(
+        "vit_features.pt",
+        lambda path: torch.load(path, map_location="cpu", weights_only=True),
+        required=require_vit_features,
+    )
     if features is not unavailable:
         if (
             not isinstance(features, torch.Tensor) or features.layout != torch.strided
@@ -143,6 +149,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path)
     parser.add_argument("--require-contact", action="store_true", help="Fail if any sequence lacks contact.npy")
+    parser.add_argument(
+        "--require-vit-features",
+        action="store_true",
+        help="Also require legacy RGB2Robo vit_features.pt; not used by the Plus frozen-feature cache",
+    )
     args = parser.parse_args()
     try:
         sequence_dirs = discover_sequences(args.root)
@@ -154,7 +165,11 @@ def main() -> None:
     positive_counts = np.zeros(2, dtype=np.int64)
     contact_frames = 0
     for sequence_dir in sequence_dirs:
-        errors, contact = validate_sequence(sequence_dir, require_contact=args.require_contact)
+        errors, contact = validate_sequence(
+            sequence_dir,
+            require_contact=args.require_contact,
+            require_vit_features=args.require_vit_features,
+        )
         if errors:
             failures[str(sequence_dir)] = errors
         elif contact is not None:

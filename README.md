@@ -120,24 +120,30 @@ following the [TRAM instructions](https://github.com/yufu-wang/tram).
 The optional moving-camera frontend uses TRAM's DROID-SLAM, SAM, DEVA,
 ZoeDepth, and SPEC/camcalib components. Their checkpoints and licenses remain
 external; use `scripts/download_models.sh` after completing the required
-registrations.
+registrations. That script intentionally does **not** download SPEC/camcalib:
+obtain `camcalib_sa_biased_l2.ckpt` from the
+[official TRAM resource](https://drive.google.com/file/d/1t4tO0OM5s8XDvAzPW-5HaOkQuV3dHBdO/view?usp=sharing)
+after accepting its terms and place it in `data/pretrain/`.
 
 ## Dataset preprocessing
 
 TRAM provides [preprocessed training data (such as crops) and annotations](https://drive.google.com/drive/folders/1kTrsfZRfWjZOnwNn-5OOyvmVCCXoGBUG?usp=share_link)
 for the supported datasets except BEDLAM. Download those resources and update
-`data_config.py` to point to the correct paths. For BEDLAM, download the
-**30 fps version** (for example, the MP4 files) from the
+`data_config.py` or set `TRAM_DATA_ROOT` to the correct path. For BEDLAM,
+download the **30 fps version** (for example, the MP4 files) from the
 [official BEDLAM website](https://bedlam.is.tue.mpg.de) under its terms, then
-use the included helpers to extract and crop it into the required format:
+extract and crop it:
 
 ```bash
-python scripts/extract_bedlam_jpg.py --help
-python scripts/crop_datasets.py --help
+export TRAM_DATA_ROOT=/path/to/tram_data
+python scripts/extract_bedlam_jpg.py \
+  --bedlam-root "$TRAM_DATA_ROOT/bedlam_30fps"
+python scripts/crop_datasets.py --datasets bedlam_vid
 ```
 
-If a sequence contains SMPL parameters but no `keypoints.npy`, generate the
-SMPL joints with the licensed neutral model:
+Both commands have real `--help` output and do not start processing when help
+is requested. If a sequence contains SMPL parameters but no `keypoints.npy`,
+generate the SMPL joints with the licensed neutral model:
 
 ```bash
 python scripts/generate_smpl_keypoints.py \
@@ -146,27 +152,87 @@ python scripts/generate_smpl_keypoints.py \
 python scripts/validate_dataset.py /path/to/sequence
 ```
 
-For video input, extract a continuous person track with YOLOv8x:
+The validator requires `vit_features.pt` only when `--require-vit-features` is
+explicitly supplied. Plus training instead uses the frozen-feature cache shown
+below; do not rename that cache to `vit_features.pt`.
+
+## Inference and post-processing
+
+Complete C-RC1 inference requires a continuous, single-person, single-shot
+video of at least 16 frames. Every frame must have a valid target observation;
+split the video/track at gaps instead of treating interpolated boxes as real
+observations. Boxes, COCO17 coordinates, and intrinsics must all use original
+full-image pixels.
+
+For the moving-camera frontend, install its optional dependencies, compile
+DROID for the local CUDA architecture, and isolate the legacy timm required by
+ZoeDepth/MiDaS from the robot-training environment:
+
+```bash
+BRPLUS_INSTALL_FRONTEND=1 bash scripts/setup_environment.sh
+python scripts/build_droid_extensions.py install
+python -m pip install --no-deps --target .conda/camera-deps timm==0.6.7
+export TRAM_CAMERA_DEPS="$PWD/.conda/camera-deps"
+```
+
+Set `CUDA_HOME` and `TRAM_CUDA_ARCH` when the defaults do not match the local
+toolkit/GPU. The external frontend checkpoints, including the separately
+licensed camcalib file described above, are also required.
+
+**1. Extract the raw target track.** This file is an input to the frontend, not
+yet the enriched boxes file accepted by final inference:
 
 ```bash
 python scripts/extract_video_boxes.py \
   --video path/to/video.mp4 \
   --weights assets/yolo/yolov8x.pt \
-  --output outputs/boxes.npz
+  --output outputs/track.npz
 ```
 
-## Inference and post-processing
+**2. Generate aligned COCO17 keypoints.** Download the official Ultralytics
+pose checkpoint, then associate pose predictions with the same target track:
 
-Run the complete Plus pipeline with the merged eight-robot checkpoint:
+```bash
+mkdir -p assets/yolo
+curl -L https://github.com/ultralytics/assets/releases/download/v8.4.0/yolov8x-pose.pt \
+  -o assets/yolo/yolov8x-pose.pt
+python scripts/extract_video_coco17.py \
+  --video path/to/video.mp4 \
+  --boxes outputs/track.npz \
+  --weights assets/yolo/yolov8x-pose.pt \
+  --output outputs/coco17.npz
+```
+
+This produces image-space `[T,17,3]` COCO keypoints, not the world-space
+`[T,24,3]` SMPL joints produced by `generate_smpl_keypoints.py`.
+
+**3. Estimate the camera and intrinsics.** The camera step accepts the raw
+track NPZ directly (legacy `--bbox-pt` remains supported) and writes both the
+camera trajectory and an enriched boxes NPZ containing `img_focal/img_center`:
+
+```bash
+python scripts/prepare_robot_video_camera.py \
+  --video path/to/video.mp4 \
+  --boxes outputs/track.npz \
+  --output-dir outputs/frontend \
+  --camera-mode moving
+```
+
+Use `--camera-mode static` for a known static camera or `auto` for automatic
+selection. The optional moving-camera frontend and its external checkpoints
+must already be installed as described above.
+
+**4. Run the complete Plus pipeline.** Use the **enriched** boxes from the
+camera step, together with its camera trajectory and the COCO17 file:
 
 ```bash
 python scripts/infer_beyondretarget.py \
   --cfg configs/config_beyondretarget_motion_g1.yaml \
   --video path/to/video.mp4 \
-  --boxes outputs/boxes.npz \
+  --boxes outputs/frontend/boxes.npz \
   --checkpoint assets/checkpoints/beyondretarget_plus_8robots.pth \
-  --camera-trajectory outputs/camera.npy \
-  --keypoints outputs/keypoints.npy \
+  --camera-trajectory outputs/frontend/camera.npy \
+  --keypoints outputs/coco17.npz \
   --confirm-single-shot \
   --output outputs/final_motion.npz
 ```
@@ -184,18 +250,62 @@ python scripts/render_robot_video.py --help
 
 ## Training
 
-Training uses processed TRAM data and either cached frozen features or the
-official VIMO checkpoint:
+Training requires processed TRAM data, the licensed neutral SMPL model, and
+`data/pretrain/vimo_checkpoint.pth.tar` from `scripts/download_models.sh`.
+`vit_features.pt` is not part of this Plus cache/label contract.
+
+### Frozen features and robot heads
+
+Build a complete frozen-feature cache, then train the robot adapter heads:
 
 ```bash
+export TRAM_DATA_ROOT=/path/to/tram_data
 python scripts/cache_tram_robot_features.py \
   --cfg configs/config_beyondretarget_motion_g1.yaml \
-  --output outputs/feature_cache/vimo_decoder46_16f_v2
+  --output outputs/feature_cache/vimo_decoder46_16f_v2 \
+  --sources bedlam_vid,h36m_vid,3dpw_vid
 python scripts/train_beyondretarget.py \
   --cfg configs/config_beyondretarget_motion_g1.yaml
-python scripts/train_static_head.py \
-  --config configs/config_beyondretarget_motion_camera_static.yaml --launch
 ```
+
+### Static labels and static head
+
+First generate the complete v1 labels. Do not use `--limit` for a training
+artifact:
+
+```bash
+python scripts/generate_static_labels.py \
+  --dataset-root "$TRAM_DATA_ROOT" \
+  --output outputs/static_labels/world_static6_v1 \
+  --sources bedlam_vid,h36m_vid
+```
+
+The camera-conditioned configuration requires true-camera v2 labels. Building
+them additionally requires the official, row-matched BEDLAM world/in-camera
+motion-label PT (containing `pose`, `global_orient_incam`, `trans`,
+`trans_incam`, `cam_ext`, and `skeleton`). That external preprocessing artifact
+is not generated by this repository:
+
+```bash
+python scripts/build_true_world_static.py \
+  --motion-file /path/to/bedlam_motion_labels.pt \
+  --annotation "$TRAM_DATA_ROOT/dataset_ann/bedlam_vid.npz" \
+  --old-labels outputs/static_labels/world_static6_v1 \
+  --output outputs/static_labels/world_static6_truecamera_v2
+```
+
+Finally, launch with **three processes**, because `batch_per_gpu=512` and the
+configured global batch is 1536:
+
+```bash
+torchrun --standalone --nproc_per_node=3 \
+  scripts/train_static_head.py \
+  --config configs/config_beyondretarget_motion_camera_static.yaml \
+  --launch
+```
+
+A different process count requires an explicit global-batch/LR decision in the
+configuration; the trainer intentionally rejects a silent mismatch.
 
 The PARE/TRAM synthetic-occlusion augmentation is optional. Download its
 Pascal resource with `bash scripts/download_pascal_occluders.sh` and enable it
@@ -213,8 +323,10 @@ python -m unittest discover -s tests -p 'test_*.py'
 ```
 
 EMDB, its annotations, and the official human-evaluation resources remain
-external. The included CPU tests cover the Plus model and post-processing
-contracts.
+external. Empty splits, missing selected-sequence predictions, and evaluations
+with no valid human sequence now fail with a nonzero exit status instead of
+silently writing NaN metrics. The included CPU tests cover the Plus model and
+post-processing contracts.
 
 ## Repository layout
 

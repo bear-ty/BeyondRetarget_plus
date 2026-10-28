@@ -1,50 +1,64 @@
+"""Extract JPG frames from the official BEDLAM 30 fps MP4 layout."""
+import argparse
+import os
+from pathlib import Path
 import sys
-import os
+
 sys.path.insert(0, os.path.dirname(__file__) + '/..')
-
-import os
-import cv2
-import numpy as np
-from glob import glob
-from tqdm import tqdm
-import ffmpeg
-
 from data_config import ROOT
 
-def mp4_to_jpg(v, frame_folder):
-    cap = cv2.VideoCapture(v)
+
+def mp4_to_jpg(video, frame_folder):
+    import cv2
+
+    cap = cv2.VideoCapture(str(video))
     count = 0
-    while(cap.isOpened()):
+    while cap.isOpened():
         ret, frame = cap.read()
-        if ret == True:
-            cv2.imwrite(f'{frame_folder}/{count:04d}.jpg', frame)
-            count += 1
-        else:
+        if not ret:
             break
+        if not cv2.imwrite(str(Path(frame_folder) / f'{count:04d}.jpg'), frame):
+            raise IOError(f'Could not write frame {count} from {video}')
+        count += 1
     cap.release()
 
-def mp4_to_jpg_ffmpeg(v, frame_folder):
+
+def mp4_to_jpg_ffmpeg(video, frame_folder):
+    import ffmpeg
+
     (
-        ffmpeg.input(v)
-        .output(f'{frame_folder}/%04d.jpg', 
-                vf='fps=30', 
-                start_number=0,
-                qscale=1)
+        ffmpeg.input(str(video))
+        .output(str(Path(frame_folder) / '%04d.jpg'), vf='fps=30', start_number=0, qscale=1)
         .run(quiet=True)
     )
 
-root = f'{ROOT}/bedlam_30fps'
-mp4_scene = sorted(glob(f'{root}/mp4/*'))
 
-for scene in mp4_scene:
-    mp4_files = sorted(glob(f'{scene}/mp4/*.mp4'))
-    for file in tqdm(mp4_files):
-        s = file.split('/')[-3]
-        seq = file.split('/')[-1][:-4]
-        
-        img_outdir = f'{root}/bedlam_data/images/{s}/jpg/{seq}'
-        os.makedirs(img_outdir, exist_ok=True)
-        
-        # mp4_to_jpg(file, img_outdir)
-        mp4_to_jpg_ffmpeg(file, img_outdir)
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        '--bedlam-root', default=f'{ROOT}/bedlam_30fps',
+        help='BEDLAM root containing mp4/<scene>/mp4/*.mp4 (default: TRAM_DATA_ROOT/bedlam_30fps)',
+    )
+    parser.add_argument(
+        '--output-root',
+        help='Image destination (default: <bedlam-root>/bedlam_data/images)',
+    )
+    args = parser.parse_args()
+    from tqdm import tqdm
 
+    root = Path(args.bedlam_root)
+    output_root = Path(args.output_root) if args.output_root else root / 'bedlam_data' / 'images'
+    videos = sorted(root.glob('mp4/*/mp4/*.mp4'))
+    if not videos:
+        raise FileNotFoundError(f'No BEDLAM MP4 files found under {root / "mp4"}')
+    for video in tqdm(videos):
+        scene = video.parts[-3]
+        sequence = video.stem
+        image_dir = output_root / scene / 'jpg' / sequence
+        image_dir.mkdir(parents=True, exist_ok=True)
+        mp4_to_jpg_ffmpeg(video, image_dir)
+    print(f'Extracted {len(videos)} videos into {output_root}')
+
+
+if __name__ == '__main__':
+    main()

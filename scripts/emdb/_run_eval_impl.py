@@ -38,6 +38,19 @@ for root in roots:
     if ann[f'emdb{spl}']:
         emdb.append(root)
 
+if not emdb:
+    parser.error(f'No EMDB sequences selected: data_root={args.data_root!r}, split={spl}')
+
+missing_predictions = []
+for root in emdb:
+    seq = root.split('/')[-1]
+    for kind in ['camera', 'smpl']:
+        predfile = os.path.join(input_dir, kind, f'{seq}.npz')
+        if not os.path.isfile(predfile):
+            missing_predictions.append(predfile)
+if missing_predictions:
+    parser.error('Missing required EMDB predictions:\n' + '\n'.join(missing_predictions))
+
 # SMPL
 smpl = SMPL()
 smpls = {g:SMPL(gender=g) for g in ['neutral', 'male', 'female']}
@@ -190,7 +203,10 @@ for root in tqdm(emdb):
     accumulator['w_mpjpe'].append(w_mpjpe)
     accumulator['rte'].append(rte_align_all)
     accumulator['erve'].append(erve)
-    
+
+if not human_traj:
+    parser.error(f'No valid human EMDB sequences to evaluate: data_root={args.data_root!r}, split={spl}')
+
 for k, v in accumulator.items():
     accumulator[k] = np.concatenate(v).mean()
 
@@ -229,10 +245,17 @@ for root in emdb:
     
     results[seq] = re
 
+if not results:
+    parser.error(f'No EMDB camera evaluation results: data_root={args.data_root!r}, split={spl}')
+
 ate = np.mean([re['stats_slam']['mean'] for re in results.values()])
 ate_s = np.mean([re['stats_metric']['mean'] for re in results.values()])
 accumulator['ate'] = ate
 accumulator['ate_s'] = ate_s
+
+non_finite_metrics = [k for k, v in accumulator.items() if not np.all(np.isfinite(v))]
+if non_finite_metrics:
+    parser.error('Non-finite EMDB evaluation metrics: ' + ', '.join(non_finite_metrics))
 
 # Save evaluation results
 for k, v in accumulator.items():

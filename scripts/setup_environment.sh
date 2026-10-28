@@ -51,6 +51,36 @@ else
   echo "No optional Plus asset manifest supplied; SMPL files and datasets remain external."
 fi
 
+# Verify both the installed distribution and the module actually imported by
+# this interpreter after every dependency installation step. Never remove
+# numpy/_core automatically: a mixed environment needs a clean reinstall,
+# while NumPy 2.x pickles may need to be regenerated.
+python - <<'PY'
+import sys
+from importlib import metadata
+
+expected = "1.23.5"
+try:
+    distribution_version = metadata.version("numpy")
+except metadata.PackageNotFoundError:
+    distribution_version = "<not installed>"
+try:
+    import numpy
+except Exception as exc:
+    raise SystemExit(
+        f"NumPy import failed in {sys.executable}: {exc!r}. "
+        "Use a clean environment; do not delete numpy/_core manually."
+    ) from exc
+runtime_version = numpy.__version__
+print(f"NumPy distribution: {distribution_version}")
+print(f"NumPy runtime: {runtime_version} ({numpy.__file__})")
+if distribution_version != expected or runtime_version != expected:
+    raise SystemExit(
+        f"NumPy mismatch: distribution={distribution_version}, runtime={runtime_version}, "
+        f"expected={expected}. Use a clean environment; do not delete numpy/_core manually."
+    )
+PY
+
 echo "Environment ready: $ENV_NAME"
 echo "Next: conda activate $ENV_NAME"
 echo "Then run: python scripts/check_installation.py"
