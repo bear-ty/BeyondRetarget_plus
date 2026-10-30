@@ -2,21 +2,9 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__) + '/../..')
 
-import cv2
-import torch
 import argparse
-import numpy as np
 import pickle as pkl
 from glob import glob
-from tqdm import tqdm
-
-from lib.camera import run_metric_slam, align_cam_to_world
-from lib.pipeline.tools import arrange_boxes
-from lib.utils.utils_detectron2 import DefaultPredictor_Lazy
-
-from torch.amp import autocast
-from segment_anything import SamPredictor, sam_model_registry
-from detectron2.config import LazyConfig
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--split', type=int, default=2)
@@ -42,6 +30,20 @@ for root in roots:
 
 if not emdb:
     parser.error(f'No EMDB sequences selected: data_root={args.data_root!r}, split={spl}')
+
+
+# Import the optional frontend only after validating that work exists.
+import cv2
+import torch
+import numpy as np
+from tqdm import tqdm
+from torch.amp import autocast
+
+from lib.camera import run_metric_slam, align_cam_to_world
+from lib.pipeline.boxes import arrange_boxes
+from lib.utils.utils_detectron2 import DefaultPredictor_Lazy
+from segment_anything import SamPredictor, sam_model_registry
+from detectron2.config import LazyConfig
 
 
 # Save folder

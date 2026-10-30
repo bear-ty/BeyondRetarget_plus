@@ -11,6 +11,7 @@ from pycocotools import mask as masktool
 from lib.utils.utils_detectron2 import DefaultPredictor_Lazy
 from detectron2.config import LazyConfig
 from lib.pipeline.deva_track import get_deva_tracker, track_with_mask, flush_buffer
+from lib.pipeline.boxes import arrange_boxes
 
 
 if torch.cuda.is_available():
@@ -205,32 +206,6 @@ def parse_chunks(frame, boxes, min_len=16):
                 boxes_chunks.append(b_chunk)
 
     return frame_chunks, boxes_chunks
-
-
-def arrange_boxes(boxes, mode='size', min_size=None):
-    """ Helper to re-order boxes """
-    # Left2right priority
-    if mode == 'left2right':
-        cx = (boxes[:,2] - boxes[:,0]) / 2 + boxes[:,0]
-        boxes = boxes[np.argsort(cx)]
-    # size priority
-    elif mode == 'size':
-        w = boxes[:,2] - boxes[:,0]
-        h = boxes[:,3] - boxes[:,1]
-        area = w*h
-        boxes = boxes[np.argsort(area)[::-1]]
-    # confidence priority
-    elif mode == 'conf':  
-        conf = boxes[:,4]
-        boxes = boxes[np.argsort(conf)[::-1]]
-    # filter boxes by size
-    if min_size is not None:
-        w = boxes[:,2] - boxes[:,0]
-        h = boxes[:,3] - boxes[:,1]
-        valid = np.stack([w, h]).max(axis=0) > min_size
-        boxes = boxes[valid]
-
-    return boxes
 
 
 def box_iou(box1, box2):

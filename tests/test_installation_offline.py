@@ -7,6 +7,8 @@ import importlib.util
 import io
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 from types import SimpleNamespace
@@ -60,6 +62,104 @@ class RequirementAndScriptTests(unittest.TestCase):
         self.assertIn('distribution_version = metadata.version("numpy")', setup)
         self.assertIn("runtime_version = numpy.__version__", setup)
         self.assertIn("do not delete numpy/_core manually", setup)
+
+    def test_conda_activation_relaxes_only_nounset_and_propagates_status(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            conda_root = root / "conda"
+            activation = conda_root / "etc/conda/activate.d"
+            activation.mkdir(parents=True)
+            profile = conda_root / "etc/profile.d"
+            profile.mkdir(parents=True)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            log = root / "calls.log"
+            (activation / "mkl.sh").write_text(
+                'printf "hook:mkl=%s\\n" "${MKL_INTERFACE_LAYER-unset}" >> "$FAKE_CONDA_LOG"\n'
+                'if [[ "${FAKE_CONDA_HOOK_COMMAND_FAIL:-0}" == 1 ]]; then false; fi\n'
+                ': "${MKL_INTERFACE_LAYER}"\n',
+                encoding="utf-8",
+            )
+            (profile / "conda.sh").write_text(
+                '''if [[ "${FAKE_CONDA_SOURCE_COMMAND_FAIL:-0}" == 1 ]]; then false; fi
+conda() {
+  local state=without-u
+  [[ $- == *u* ]] && state=with-u
+  printf 'conda:%s:%s:%s\\n' "$state" "$1" "${2:-}" >> "$FAKE_CONDA_LOG"
+  case "$1" in
+    env) printf 'BeyondRetarget_plus\\n'; return 0 ;;
+    activate)
+      source "$FAKE_CONDA_ROOT/etc/conda/activate.d/mkl.sh"
+      return "${FAKE_CONDA_ACTIVATE_STATUS:-0}" ;;
+  esac
+  return 99
+}
+python() {
+  local state=without-u
+  [[ $- == *u* ]] && state=with-u
+  printf 'python:%s:%s\\n' "$state" "$*" >> "$FAKE_CONDA_LOG"
+  if [[ "$1" == "-" ]]; then
+    while IFS= read -r _line; do :; done
+    return "${FAKE_CONDA_NUMPY_STATUS:-0}"
+  fi
+  return 0
+}
+return "${FAKE_CONDA_SOURCE_STATUS:-0}"
+''',
+                encoding="utf-8",
+            )
+            fake_conda = bin_dir / "conda"
+            fake_conda.write_text(
+                '#!/usr/bin/env bash\n'
+                'if [[ "$1" == info && "$2" == --base ]]; then\n'
+                '  printf "%s\\n" "$FAKE_CONDA_ROOT"\n'
+                '  exit 0\n'
+                'fi\n'
+                'exit 99\n',
+                encoding="utf-8",
+            )
+            fake_conda.chmod(0o755)
+
+            scenarios = [
+                ("success", {}, 0),
+                ("source", {"FAKE_CONDA_SOURCE_STATUS": "19"}, 19),
+                ("source_command", {"FAKE_CONDA_SOURCE_COMMAND_FAIL": "1"}, 1),
+                ("activate", {"FAKE_CONDA_ACTIVATE_STATUS": "37"}, 37),
+                ("hook_command", {"FAKE_CONDA_HOOK_COMMAND_FAIL": "1"}, 1),
+                ("numpy", {"FAKE_CONDA_NUMPY_STATUS": "23"}, 23),
+            ]
+            for name, overrides, expected_status in scenarios:
+                with self.subTest(scenario=name):
+                    log.write_text("", encoding="utf-8")
+                    env = os.environ.copy()
+                    env.pop("MKL_INTERFACE_LAYER", None)
+                    env.update({
+                        "PATH": str(bin_dir) + os.pathsep + env["PATH"],
+                        "FAKE_CONDA_ROOT": str(conda_root),
+                        "FAKE_CONDA_LOG": str(log),
+                        "BRPLUS_DOWNLOAD_SHARED_ASSETS": "0",
+                        "BRPLUS_FETCH_SUBMODULES": "0",
+                        **overrides,
+                    })
+                    completed = subprocess.run(
+                        ["bash", str(ROOT / "scripts/setup_environment.sh")],
+                        cwd=ROOT, env=env, capture_output=True, text=True, check=False, timeout=30,
+                    )
+                    self.assertEqual(completed.returncode, expected_status, completed.stderr)
+                    calls = log.read_text(encoding="utf-8").splitlines()
+                    python_calls = [line for line in calls if line.startswith("python:")]
+                    if name.startswith("source"):
+                        self.assertEqual(calls, [])
+                        continue
+                    self.assertIn("conda:without-u:activate:BeyondRetarget_plus", calls)
+                    self.assertIn("hook:mkl=unset", calls)
+                    self.assertTrue(all(line.startswith("python:with-u:") for line in python_calls))
+                    if name in ("activate", "hook_command"):
+                        self.assertEqual(python_calls, [])
+                    else:
+                        self.assertTrue(any(line.startswith("python:with-u:-") for line in python_calls))
+                    if name == "success":
+                        self.assertIn("Environment ready: BeyondRetarget_plus", completed.stdout)
 
     def test_pascal_downloader_uses_portable_python_default(self):
         script = (ROOT / "scripts/download_pascal_occluders.sh").read_text(encoding="utf-8")
@@ -134,6 +234,72 @@ class InstallationCheckerTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 valid = checker.check_distribution_version("numpy", "1.23.5", runtime_module="numpy")
         self.assertFalse(valid)
+
+    def test_frontend_probe_fails_on_broken_import_not_only_missing_spec(self):
+        completed = subprocess.CompletedProcess(
+            args=[], returncode=1, stdout="", stderr="ImportError: broken ABI\n",
+        )
+        with mock.patch.object(checker.subprocess, "run", return_value=completed) as run:
+            with contextlib.redirect_stdout(io.StringIO()):
+                available = checker.check_frontend_import(
+                    "droid_backends", "DROID-SLAM compiled extension", paths=(checker.DROID_ROOT,),
+                )
+        self.assertFalse(available)
+        command = run.call_args.args[0]
+        self.assertEqual(command[:3], [sys.executable, "-I", "-B"])
+        self.assertIn("importlib.import_module('droid_backends')", command[-1])
+        self.assertLess(command[-1].index("import torch"), command[-1].index("module = importlib.import_module"))
+        self.assertEqual(run.call_args.kwargs["env"]["CUDA_VISIBLE_DEVICES"], "")
+
+    def test_strict_frontend_checks_actual_detectron2_deva_and_native_modules(self):
+        with mock.patch.object(checker, "check_module", return_value=True), mock.patch.object(
+            checker, "check_frontend_import", return_value=True
+        ) as native, mock.patch.object(checker, "check_camera_timm", return_value=True):
+            self.assertTrue(checker.check_frontend_dependencies())
+        modules = {call.args[0]: call for call in native.call_args_list}
+        self.assertTrue({
+            "detectron2.config", "deva.model.network", "deva.inference.inference_core",
+            "deva.inference.demo_utils", "droid_backends", "lietorch_backends", "lietorch",
+        }.issubset(modules))
+        self.assertIn(checker.DEVA_ROOT, modules["deva.model.network"].kwargs["paths"])
+        self.assertIn(checker.DROID_ROOT, modules["droid_backends"].kwargs["paths"])
+        self.assertIn(checker.LIETORCH_ROOT, modules["lietorch_backends"].kwargs["paths"])
+
+    def test_camera_timm_uses_fresh_isolated_interpreter_and_documented_version(self):
+        completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+        with mock.patch.dict(os.environ, {"TRAM_CAMERA_DEPS": "/camera/deps"}), mock.patch.object(
+            checker.subprocess, "run", return_value=completed
+        ) as run, mock.patch.object(
+            checker.importlib, "import_module", side_effect=AssertionError("core timm import is forbidden")
+        ):
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertTrue(checker.check_camera_timm())
+        command = run.call_args.args[0]
+        self.assertIn("-I", command)
+        self.assertIn("expected = '0.6.7'", command[-1])
+        self.assertIn("TRAM_CAMERA_DEPS", command[-1])
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            checker.subprocess, "run", side_effect=AssertionError("probe should not run")
+        ):
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertFalse(checker.check_camera_timm())
+
+    def test_core_only_check_does_not_probe_optional_frontend(self):
+        with mock.patch.object(checker, "SUPPORTED_ROBOTS", {}), mock.patch.object(
+            checker, "CORE_MODULES", {}
+        ), mock.patch.object(checker, "EXPECTED_VERSIONS", {}), mock.patch.object(
+            checker, "check_file", return_value=True
+        ), mock.patch.object(checker, "check_path", return_value=True), mock.patch.object(
+            checker, "check_plus_bundle", return_value=True
+        ), mock.patch.object(checker, "check_frontend_dependencies", return_value=True) as frontend:
+            with mock.patch.object(sys, "argv", ["check_installation.py"]):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(checker.main(), 0)
+            frontend.assert_not_called()
+            with mock.patch.object(sys, "argv", ["check_installation.py", "--require-frontend"]):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(checker.main(), 0)
+            frontend.assert_called_once_with()
 
     def test_mjcf_mesh_check_fails_then_passes_when_mesh_is_materialized(self):
         with tempfile.TemporaryDirectory() as temporary:

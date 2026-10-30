@@ -8,6 +8,8 @@ import importlib
 from importlib import metadata
 import os
 from pathlib import Path
+import subprocess
+import sys
 import xml.etree.ElementTree as ET
 
 
@@ -90,6 +92,12 @@ EXPECTED_VERSIONS = {
     "PyOpenGL": "3.1.10",
 }
 
+DROID_ROOT = ROOT / "thirdparty" / "DROID-SLAM"
+DROID_SLAM_ROOT = DROID_ROOT / "droid_slam"
+LIETORCH_ROOT = DROID_ROOT / "thirdparty" / "lietorch"
+DEVA_ROOT = ROOT / "thirdparty" / "Tracking-Anything-with-DEVA"
+CAMERA_TIMM_VERSION = "0.6.7"
+
 
 def check_file(path: Path, label: str, required: bool = True) -> bool:
     exists = path.is_file() and path.stat().st_size > 0
@@ -145,6 +153,86 @@ def check_distribution_version(distribution: str, expected: str, runtime_module:
                 f"{installed} != {runtime_version} ({location})"
             )
             ok = False
+    return ok
+
+
+def _run_frontend_probe(label: str, package: str, code: str) -> bool:
+    """Run optional frontend imports without affecting the core interpreter."""
+    env = os.environ.copy()
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    env["CUDA_VISIBLE_DEVICES"] = ""
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-I", "-B", "-c", code],
+            capture_output=True, text=True, env=env, timeout=90, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        print(f"[MISSING] {label} ({package}): {type(exc).__name__}: {exc}")
+        return False
+    if completed.returncode:
+        detail = (completed.stderr.strip() or completed.stdout.strip()).splitlines()
+        suffix = f": {detail[-1]}" if detail else ""
+        print(f"[MISSING] {label} ({package}): exit {completed.returncode}{suffix}")
+        return False
+    print(f"[OK] {label} ({package})")
+    return True
+
+
+def check_frontend_import(
+    module_name: str, package: str, symbols: tuple[str, ...] = (), paths: tuple[Path, ...] = ()
+) -> bool:
+    code = (
+        "import importlib, sys\n"
+        "import torch\n"
+        f"sys.path[:0] = {[str(path) for path in paths]!r}\n"
+        f"module = importlib.import_module({module_name!r})\n"
+        f"for symbol in {symbols!r}:\n"
+        "    if not hasattr(module, symbol):\n"
+        "        raise ImportError(f'missing required symbol: {symbol}')\n"
+    )
+    return _run_frontend_probe(f"Frontend module: {module_name}", package, code)
+
+
+def check_camera_timm() -> bool:
+    if not os.environ.get("TRAM_CAMERA_DEPS"):
+        print(
+            f"[MISSING] Frontend camera module: timm=={CAMERA_TIMM_VERSION}; "
+            "set TRAM_CAMERA_DEPS to the documented isolated dependency directory"
+        )
+        return False
+    code = (
+        "import os, sys\n"
+        "from pathlib import Path\n"
+        "root = Path(os.environ['TRAM_CAMERA_DEPS']).resolve()\n"
+        "sys.path.insert(0, str(root))\n"
+        "import timm\n"
+        f"expected = {CAMERA_TIMM_VERSION!r}\n"
+        "actual = getattr(timm, '__version__', None)\n"
+        "if actual != expected:\n"
+        "    raise RuntimeError(f'timm version {actual!r}; expected {expected!r}')\n"
+        "location = Path(timm.__file__).resolve()\n"
+        "if root != location.parent and root not in location.parents:\n"
+        "    raise RuntimeError(f'timm loaded from {location}, outside {root}')\n"
+    )
+    return _run_frontend_probe(f"Frontend camera module: timm=={CAMERA_TIMM_VERSION}", "timm", code)
+
+
+def check_frontend_dependencies() -> bool:
+    ok = True
+    for module, package in FRONTEND_MODULES.items():
+        ok &= check_module(module, package, category="Frontend module")
+    ok &= check_frontend_import("detectron2.config", "detectron2", symbols=("LazyConfig",))
+    for module, symbol in (
+        ("deva.model.network", "DEVA"),
+        ("deva.inference.inference_core", "DEVAInferenceCore"),
+        ("deva.inference.demo_utils", "flush_buffer"),
+    ):
+        ok &= check_frontend_import(module, "Tracking-Anything-with-DEVA", symbols=(symbol,), paths=(DEVA_ROOT,))
+    native_paths = (DROID_SLAM_ROOT, DROID_ROOT, LIETORCH_ROOT)
+    ok &= check_frontend_import("droid_backends", "DROID-SLAM compiled extension", paths=native_paths)
+    ok &= check_frontend_import("lietorch_backends", "LieTorch compiled extension", paths=native_paths)
+    ok &= check_frontend_import("lietorch", "LieTorch", symbols=("SE3", "Sim3"), paths=native_paths)
+    ok &= check_camera_timm()
     return ok
 
 
@@ -328,8 +416,7 @@ def main() -> int:
         runtime_module = "numpy" if distribution == "numpy" else None
         ok &= check_distribution_version(distribution, expected, runtime_module=runtime_module)
     if args.require_frontend:
-        for module, package in FRONTEND_MODULES.items():
-            ok &= check_module(module, package, category="Frontend module")
+        ok &= check_frontend_dependencies()
     if args.require_evaluation:
         for module, package in EVALUATION_MODULES.items():
             ok &= check_module(module, package, category="Evaluation module")

@@ -101,7 +101,7 @@ def _make_stubs(forbid_smpl=True):
         ),
         'lib.camera.slam_utils': _module('lib.camera.slam_utils', eval_slam=_eval_slam),
         'lib.pipeline': _module('lib.pipeline'),
-        'lib.pipeline.tools': _module('lib.pipeline.tools', arrange_boxes=_forbidden_initialization),
+        'lib.pipeline.boxes': _module('lib.pipeline.boxes', arrange_boxes=_forbidden_initialization),
         'lib.utils': _module('lib.utils'),
         'lib.utils.utils_detectron2': _module(
             'lib.utils.utils_detectron2', DefaultPredictor_Lazy=_forbidden_initialization,
@@ -199,6 +199,37 @@ def _write_predictions(input_dir, n_frames=5):
 
 
 class EMDBFailFastTests(unittest.TestCase):
+    def test_camera_empty_root_real_subprocess_without_site_packages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data_root = root / 'empty-data'
+            output_root = root / 'output'
+            completed = subprocess.run(
+                [sys.executable, '-S', str(EMDB_SCRIPTS / 'run_cam.py'),
+                 '--data-root', str(data_root), '--output_dir', str(output_root)],
+                cwd=ROOT, capture_output=True, text=True, check=False, timeout=30,
+            )
+            self.assertEqual(completed.returncode, 2, completed.stderr)
+            self.assertIn('No EMDB sequences selected', completed.stderr)
+            self.assertNotIn('ModuleNotFoundError', completed.stderr)
+            self.assertFalse(output_root.exists())
+
+    def test_camera_valid_selection_still_propagates_real_dependency_errors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sequence = root / 'data/P0/S0'
+            sequence.mkdir(parents=True)
+            with (sequence / 'P0_S0_data.pkl').open('wb') as handle:
+                pickle.dump({'emdb2': True}, handle)
+            completed = subprocess.run(
+                [sys.executable, '-S', str(EMDB_SCRIPTS / 'run_cam.py'),
+                 '--data-root', str(root / 'data'), '--output_dir', str(root / 'output')],
+                cwd=ROOT, capture_output=True, text=True, check=False, timeout=30,
+            )
+            self.assertEqual(completed.returncode, 1, completed.stderr)
+            self.assertIn('ModuleNotFoundError', completed.stderr)
+            self.assertNotIn('No EMDB sequences selected', completed.stderr)
+
     def test_empty_data_root_rejected_before_output_or_model_initialization(self):
         for script in ['run_cam.py', 'run_smpl.py', 'run_eval.py']:
             with self.subTest(script=script), tempfile.TemporaryDirectory() as tmp:

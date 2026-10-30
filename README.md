@@ -173,6 +173,7 @@ BRPLUS_INSTALL_FRONTEND=1 bash scripts/setup_environment.sh
 python scripts/build_droid_extensions.py install
 python -m pip install --no-deps --target .conda/camera-deps timm==0.6.7
 export TRAM_CAMERA_DEPS="$PWD/.conda/camera-deps"
+python scripts/check_installation.py --require-frontend --require-frontend-checkpoints
 ```
 
 Set `CUDA_HOME` and `TRAM_CUDA_ARCH` when the defaults do not match the local
@@ -221,6 +222,8 @@ python scripts/prepare_robot_video_camera.py \
 Use `--camera-mode static` for a known static camera or `auto` for automatic
 selection. The optional moving-camera frontend and its external checkpoints
 must already be installed as described above.
+Use a separate output directory when changing the video, target track, or
+camera mode; rerunning the same inputs reuses the verified cache.
 
 **4. Run the complete Plus pipeline.** Use the **enriched** boxes from the
 camera step, together with its camera trajectory and the COCO17 file:

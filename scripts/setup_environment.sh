@@ -6,13 +6,20 @@ ENV_NAME="${BRPLUS_ENV_NAME:-BeyondRetarget_plus}"
 PYTHON_VERSION="${BRPLUS_PYTHON_VERSION:-3.10}"
 
 command -v conda >/dev/null || { echo 'conda is required.' >&2; exit 1; }
+
+# Conda activation hooks may legitimately read optional, unset variables.
+# Keep nounset disabled only while executing Conda's own shell code.
+set +u
 source "$(conda info --base)/etc/profile.d/conda.sh"
+set -u
 
 if ! conda env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
   conda create -n "$ENV_NAME" "python=$PYTHON_VERSION" pip -y
 fi
 
+set +u
 conda activate "$ENV_NAME"
+set -u
 python -m pip install --upgrade pip
 python -m pip install -r "$ROOT/requirements_beyondretarget.txt"
 
