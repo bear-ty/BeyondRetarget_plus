@@ -1,4 +1,4 @@
-<h1 align="center">BeyondRetarget Plus: Global Trajectory-Aware Humanoid Retargeting</h1>
+<h1 align="center">BeyondRetarget Plus: Data Engine for Generating Robot Motion Data from Internet-Scale Human Videos</h1>
 
 <div align="center">
   <a href="https://bear-ty.github.io/bear_ty/" target="_blank">Tianyu Xiong</a><sup>1,*</sup>&emsp;
@@ -26,9 +26,10 @@
   <sup>&dagger;</sup>Corresponding Author
 </div>
 <div align="center">
-  <a href="https://bear-ty.github.io/Beyondretarget_page/"><img src="https://img.shields.io/badge/Project-Page-green" alt="Project Page"></a>
-  <a href="https://huggingface.co/spaces/bear-ty/BeyondRetarget"><img src="https://img.shields.io/badge/Hugging%20Face-Demo-yellow" alt="Hugging Face Demo"></a>
-  <a href="https://arxiv.org/abs/2609.29850"><img src="https://img.shields.io/badge/Paper-arXiv-red" alt="Paper on arXiv"></a>
+  <a href="https://bear-ty.github.io/BR_plus_web/"><img src="https://img.shields.io/badge/Plus-Project%20Page-green" alt="Plus Project Page"></a>
+  <a href="https://bear-ty.github.io/Beyondretarget_page/"><img src="https://img.shields.io/badge/Base-Version-blue" alt="Base Version"></a>
+  <a href="https://github.com/bear-ty/BeyondRetarget"><img src="https://img.shields.io/badge/Base-Code-blue" alt="Base Code"></a>
+  <a href="https://arxiv.org/abs/2609.29850"><img src="https://img.shields.io/badge/Base-Paper-red" alt="Base Paper"></a>
 </div>
 
 <div align="center">
@@ -47,10 +48,11 @@ real-time teleoperation, while Plus is intended for research and offline use.
 | **BeyondRetarget (base)** | Real-time monocular-video humanoid retargeting and teleoperation | [Base code](https://github.com/bear-ty/BeyondRetarget) |
 | **BeyondRetarget Plus** | Global trajectories, moving-camera preprocessing, training, and evaluation | This repository |
 
-The public code and project website currently present the **BeyondRetarget base
-version**. It is designed for real-time teleoperation, but does not yet cover
-moving cameras or large-scale global human trajectories. BeyondRetarget Plus is
-the research version for these settings.
+This repository and the [Plus project website](https://bear-ty.github.io/BR_plus_web/)
+present **BeyondRetarget Plus**. The [base project website](https://bear-ty.github.io/Beyondretarget_page/)
+and its interactive demo present **BeyondRetarget (base)**; use the base release
+for real-time teleoperation and Plus for offline motion data generation with
+moving cameras and large-scale global trajectories.
 
 ![Pipeline comparison](assets/demos/pipeline-comparison.png)
 
@@ -69,14 +71,14 @@ The demo showcases **highly dynamic motions and large-scale movement**, and with
 **stable foot contact without sliding in the tennis scene**.
 
 <p align="center">
-  <img src="assets/demos/beyondretarget_plus_preview.gif" alt="BeyondRetarget Plus development preview" width="640" />
+  <img src="assets/demos/beyondretarget_plus_preview.gif" alt="BeyondRetarget Plus motion demonstrations" width="640" />
 </p>
 
 
 ## 📋 Todo List
 
 - [x] Release the **base version**, pretrained weights, and inference tools for eight humanoid robots.
-- [x] Support offline video inference and real-time streaming for teleoperation.
+- [x] Support offline video inference and real-time streaming for teleoperation in the **base version**.
 - [x] **Open-source BeyondRetarget Plus**, supporting motions across nearly all scenarios, including **skating, gymnastics, walking, and running**.
 
 ## Installation
