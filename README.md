@@ -97,6 +97,8 @@ The setup script creates the environment, installs the dependencies, and
 downloads the shared robot assets, YOLOv8x weights, and the Plus checkpoint
 from the [BeyondRetarget Google Drive folder](https://drive.google.com/drive/folders/12ySWLbVhF8WEGyLR0Ll09DmZm8rZE0Tg).
 SMPL files and datasets must be downloaded separately under their own terms.
+Before generating camera results, also obtain the
+[SPEC/camcalib files](#spec-and-pare-components) below; setup does not include them.
 
 ## Resources
 
@@ -119,13 +121,42 @@ Download the licensed neutral SMPL model from the
 `data/smpl/`. Download and prepare the BEDLAM, H36M, 3DPW, and EMDB resources
 following the [TRAM instructions](https://github.com/yufu-wang/tram).
 
-The optional moving-camera frontend uses TRAM's DROID-SLAM, SAM, DEVA,
-ZoeDepth, and SPEC/camcalib components. Their checkpoints and licenses remain
-external; use `scripts/download_models.sh` after completing the required
-registrations. That script intentionally does **not** download SPEC/camcalib:
-obtain `camcalib_sa_biased_l2.ckpt` from the
-[official TRAM resource](https://drive.google.com/file/d/1t4tO0OM5s8XDvAzPW-5HaOkQuV3dHBdO/view?usp=sharing)
-after accepting its terms and place it in `data/pretrain/`.
+The optional camera frontend uses TRAM's DROID-SLAM, SAM, DEVA, ZoeDepth,
+and SPEC/camcalib components. Use `scripts/download_models.sh` for the upstream
+checkpoints after completing the required registrations. SPEC/camcalib must
+be obtained separately as described below.
+
+### SPEC and PARE components
+
+We do not have permission to redistribute the SPEC/camcalib and PARE/TRAM
+occlusion source, so these files are not included. Obtain the compatible
+files from the upstream sources under their applicable terms, retain their
+license notices, and place them at the following paths relative to this
+repository. No path registration is needed.
+
+| Component | Obtain | Place in this repository |
+| --- | --- | --- |
+| SPEC/camcalib source | From [TRAM's camcalib directory](https://github.com/yufu-wang/tram/tree/main/thirdparty/camcalib), obtain `__init__.py`, `model.py`, `cam_utils.py`, and `resnet.py` under the [SPEC terms](https://github.com/mkocabas/SPEC/blob/master/LICENSE) | `thirdparty/camcalib/` (these four files directly inside it) |
+| SPEC checkpoint | `camcalib_sa_biased_l2.ckpt` from the [official TRAM resource](https://drive.google.com/file/d/1t4tO0OM5s8XDvAzPW-5HaOkQuV3dHBdO/view?usp=sharing), under the upstream terms | `data/pretrain/camcalib_sa_biased_l2.ckpt` |
+| Optional occlusion source | TRAM's [`lib/datasets/coco_occlusion.py`](https://github.com/yufu-wang/tram/blob/main/lib/datasets/coco_occlusion.py), under the applicable [PARE terms](https://github.com/mkocabas/PARE/blob/master/LICENSE) and [synthetic-occlusion terms](https://github.com/isarandi/synthetic-occlusion) | `thirdparty/pare/coco_occlusion.py` |
+| Optional occluder data | Under the upstream resource terms, run `bash scripts/download_pascal_occluders.sh` | `data/pascal_occluders.pkl` (placed automatically) |
+
+**SPEC source and checkpoint are required before generating world-camera
+results**, including `moving`, `static`, and `auto` modes and EMDB camera
+preprocessing. Once these files are in place, the normal commands use the
+original TRAM-compatible implementation automatically. You can reuse complete,
+verified camera caches or supply previously prepared camera results without
+running SPEC again.
+
+**PARE occlusion is optional** and disabled in the public Plus configs.
+Default Plus training, inference, and evaluation do not require it. To use this
+augmentation, obtain both its source and occluder data, use training without
+a frozen-feature cache, and install the upstream helper's `loguru` dependency:
+
+```bash
+python -m pip install loguru
+python scripts/check_installation.py --require-occlusion
+```
 
 ## Dataset preprocessing
 
@@ -166,7 +197,8 @@ split the video/track at gaps instead of treating interpolated boxes as real
 observations. Boxes, COCO17 coordinates, and intrinsics must all use original
 full-image pixels.
 
-For the moving-camera frontend, install its optional dependencies, compile
+For camera generation, first place the SPEC source and checkpoint
+[listed above](#spec-and-pare-components). Then install the optional dependencies, compile
 DROID for the local CUDA architecture, and isolate the legacy timm required by
 ZoeDepth/MiDaS from the robot-training environment:
 
@@ -179,8 +211,7 @@ python scripts/check_installation.py --require-frontend --require-frontend-check
 ```
 
 Set `CUDA_HOME` and `TRAM_CUDA_ARCH` when the defaults do not match the local
-toolkit/GPU. The external frontend checkpoints, including the separately
-licensed camcalib file described above, are also required.
+toolkit/GPU. The external frontend checkpoints are also required.
 
 **1. Extract the raw target track.** This file is an input to the frontend, not
 yet the enriched boxes file accepted by final inference:
@@ -312,9 +343,9 @@ torchrun --standalone --nproc_per_node=3 \
 A different process count requires an explicit global-batch/LR decision in the
 configuration; the trainer intentionally rejects a silent mismatch.
 
-The PARE/TRAM synthetic-occlusion augmentation is optional. Download its
-Pascal resource with `bash scripts/download_pascal_occluders.sh` and enable it
-with `DATASET.OCCLUSION=true` when needed.
+The PARE/TRAM synthetic-occlusion augmentation is optional. Obtain its
+[source and Pascal resource](#spec-and-pare-components) before enabling it
+with `DATASET.OCCLUSION=true` in training without a frozen-feature cache.
 
 ## Evaluation and tests
 

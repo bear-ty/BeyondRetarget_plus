@@ -217,6 +217,24 @@ def check_camera_timm() -> bool:
     return _run_frontend_probe(f"Frontend camera module: timm=={CAMERA_TIMM_VERSION}", "timm", code)
 
 
+def check_external_source(component: str) -> bool:
+    loaders = {"camcalib": "load_camera_regressor", "occlusion": "load_pascal_occlusion"}
+    loader = loaders[component]
+    code = (
+        "import sys\n"
+        f"sys.path.insert(0, {str(ROOT)!r})\n"
+        f"from lib.util.beyondretarget.external_components import {loader}\n"
+        f"{loader}()\n"
+    )
+    return _run_frontend_probe(f"User-supplied source: {component}", "see README.md#spec-and-pare-components", code)
+
+
+def check_occlusion_resources() -> bool:
+    ok = check_external_source("occlusion")
+    ok &= check_file(ROOT / "data/pascal_occluders.pkl", "Pascal occluders")
+    return ok
+
+
 def check_frontend_dependencies() -> bool:
     ok = True
     for module, package in FRONTEND_MODULES.items():
@@ -233,6 +251,7 @@ def check_frontend_dependencies() -> bool:
     ok &= check_frontend_import("lietorch_backends", "LieTorch compiled extension", paths=native_paths)
     ok &= check_frontend_import("lietorch", "LieTorch", symbols=("SE3", "Sim3"), paths=native_paths)
     ok &= check_camera_timm()
+    ok &= check_external_source("camcalib")
     return ok
 
 
@@ -350,7 +369,12 @@ def main() -> int:
     parser.add_argument(
         "--require-frontend",
         action="store_true",
-        help="Also require optional TRAM camera/frontend Python packages.",
+        help="Also require optional TRAM camera/frontend packages and user-supplied SPEC/camcalib source.",
+    )
+    parser.add_argument(
+        "--require-occlusion",
+        action="store_true",
+        help="Require user-supplied PARE/TRAM occlusion source and the Pascal occluder resource.",
     )
     parser.add_argument(
         "--require-evaluation",
@@ -417,6 +441,8 @@ def main() -> int:
         ok &= check_distribution_version(distribution, expected, runtime_module=runtime_module)
     if args.require_frontend:
         ok &= check_frontend_dependencies()
+    if args.require_occlusion:
+        ok &= check_occlusion_resources()
     if args.require_evaluation:
         for module, package in EVALUATION_MODULES.items():
             ok &= check_module(module, package, category="Evaluation module")

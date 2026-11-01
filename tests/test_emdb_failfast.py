@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import pickle
 import runpy
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -214,21 +215,29 @@ class EMDBFailFastTests(unittest.TestCase):
             self.assertNotIn('ModuleNotFoundError', completed.stderr)
             self.assertFalse(output_root.exists())
 
-    def test_camera_valid_selection_still_propagates_real_dependency_errors(self):
+    def test_camera_valid_selection_requires_spec_before_frontend_work(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            project = root / 'project'
+            for relative in ('scripts/emdb/run_cam.py', 'scripts/emdb/_run_cam_impl.py',
+                             'lib/__init__.py', 'lib/util/beyondretarget/external_components.py'):
+                destination = project / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / relative, destination)
             sequence = root / 'data/P0/S0'
             sequence.mkdir(parents=True)
             with (sequence / 'P0_S0_data.pkl').open('wb') as handle:
                 pickle.dump({'emdb2': True}, handle)
             completed = subprocess.run(
-                [sys.executable, '-S', str(EMDB_SCRIPTS / 'run_cam.py'),
+                [sys.executable, '-S', str(project / 'scripts/emdb/run_cam.py'),
                  '--data-root', str(root / 'data'), '--output_dir', str(root / 'output')],
                 cwd=ROOT, capture_output=True, text=True, check=False, timeout=30,
             )
             self.assertEqual(completed.returncode, 1, completed.stderr)
-            self.assertIn('ModuleNotFoundError', completed.stderr)
+            self.assertIn('FileNotFoundError: SPEC/camcalib source is not included', completed.stderr)
+            self.assertIn(str(project / 'thirdparty/camcalib'), completed.stderr)
             self.assertNotIn('No EMDB sequences selected', completed.stderr)
+            self.assertFalse((root / 'output').exists())
 
     def test_empty_data_root_rejected_before_output_or_model_initialization(self):
         for script in ['run_cam.py', 'run_smpl.py', 'run_eval.py']:

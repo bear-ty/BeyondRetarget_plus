@@ -22,6 +22,7 @@ import torch
 
 from lib.util.beyondretarget.experiment import sha256_file
 from lib.util.beyondretarget.video_tracks import load_box_track
+from lib.util.beyondretarget.external_components import require_camera_resources
 
 
 CACHE_IDENTITY_VERSION = 1
@@ -234,6 +235,8 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     identity = make_cache_identity(args.video, bbox_source, args.camera_mode)
     prepare_output_cache(out, identity)
+    if not (out / 'camera.npy').exists():
+        require_camera_resources()
     torch.set_num_threads(4)
     imgfiles, fps, frame_shape = extract_frames(args.video, out / 'images', len(boxes))
     frame_count = len(imgfiles)

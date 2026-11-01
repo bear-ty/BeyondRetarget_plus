@@ -2,14 +2,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__) + '/..')
 
-import torch
 import argparse
-import numpy as np
-from glob import glob
-from pycocotools import mask as masktool
-
-from lib.pipeline import video2frames, detect_segment_track, visualize_tram
-from lib.camera import run_metric_slam, calibrate_intrinsics, align_cam_to_world
 
 
 parser = argparse.ArgumentParser()
@@ -17,6 +10,16 @@ parser.add_argument("--video", type=str, default='./example_video.mov', help='in
 parser.add_argument("--static_camera", action='store_true', help='whether the camera is static')
 parser.add_argument("--visualize_mask", action='store_true', help='save deva vos for visualization')
 args = parser.parse_args()
+
+from lib.util.beyondretarget.external_components import require_camera_resources
+require_camera_resources()
+
+import torch
+import numpy as np
+from glob import glob
+from pycocotools import mask as masktool
+from lib.pipeline import video2frames, detect_segment_track, visualize_tram
+from lib.camera import run_metric_slam, calibrate_intrinsics, align_cam_to_world
 
 # File and folders
 file = args.video

@@ -33,6 +33,9 @@ if not emdb:
 
 
 # Import the optional frontend only after validating that work exists.
+from lib.util.beyondretarget.external_components import require_camera_resources
+require_camera_resources()
+
 import cv2
 import torch
 import numpy as np

@@ -12,6 +12,7 @@ from unittest import mock
 
 import numpy as np
 import torch
+from lib.util.beyondretarget import external_components
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -168,8 +169,10 @@ class CameraCacheTests(unittest.TestCase):
         with mock.patch.object(camera_script.cv2, 'VideoCapture', return_value=_FakeCapture()), \
                 mock.patch.dict(sys.modules, {
                     'segment_anything': segment_anything, 'lib.camera': lib_camera,
-                }), mock.patch.object(camera_script, 'sha256_file', side_effect=_hash_with_fake_checkpoints):
+                }), mock.patch.object(camera_script, 'sha256_file', side_effect=_hash_with_fake_checkpoints), \
+                mock.patch.object(camera_script, 'require_camera_resources') as resources:
             _run_main(self.video, self.track, output)
+        resources.assert_called_once_with()
         self.assertEqual(calls, {'sam': 32, 'calibrate': 1, 'slam': 1, 'align': 1})
         self.assertTrue((output / 'cache_identity.json').is_file())
         validated = camera_script.load_camera(output / 'camera.npy', FRAME_COUNT, CALIB)
@@ -179,7 +182,9 @@ class CameraCacheTests(unittest.TestCase):
             self.assertEqual(float(boxes['img_focal']), float(CALIB[0]))
 
         # No frontend modules or checkpoint hashes are needed for a complete rerun.
-        with mock.patch.object(camera_script.cv2, 'VideoCapture', return_value=_FakeCapture()):
+        with mock.patch.object(camera_script.cv2, 'VideoCapture', return_value=_FakeCapture()), \
+                mock.patch.object(camera_script, 'require_camera_resources',
+                                  side_effect=AssertionError('SPEC must not load for complete cache')):
             _run_main(self.video, self.track, output)
         self.assertEqual(calls['slam'], 1)
 
@@ -196,11 +201,23 @@ class CameraCacheTests(unittest.TestCase):
         lib_camera.calibrate_intrinsics = unexpected_calibration
         with mock.patch.object(camera_script.cv2, 'VideoCapture', return_value=_FakeCapture()), \
                 mock.patch.dict(sys.modules, {'lib.camera': lib_camera}), \
-                mock.patch.object(camera_script, 'sha256_file', side_effect=_hash_with_fake_checkpoints):
+                mock.patch.object(camera_script, 'sha256_file', side_effect=_hash_with_fake_checkpoints), \
+                mock.patch.object(camera_script, 'require_camera_resources'):
             _run_main(self.video, self.track, output)
         self.assertEqual(calls['slam'], 1)
         self.assertEqual(calls['align'], 1)
         self.assertTrue((output / 'boxes.npz').is_file())
+
+    def test_missing_spec_fails_before_frame_extraction_in_all_modes(self):
+        with mock.patch.object(external_components, 'ROOT', self.root), \
+                mock.patch.object(camera_script, 'extract_frames',
+                                  side_effect=AssertionError('frame work must not start')):
+            for mode in ('moving', 'static', 'auto'):
+                with self.subTest(mode=mode):
+                    output = self.root / mode
+                    with self.assertRaisesRegex(FileNotFoundError, 'thirdparty/camcalib'):
+                        _run_main(self.video, self.track, output, mode=mode)
+                    self.assertFalse((output / 'camera.npy').exists())
 
     def test_mismatched_track_mode_and_legacy_cache_fail_before_video_work(self):
         output = self.root / 'output'

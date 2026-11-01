@@ -82,6 +82,9 @@ def arguments():
 
 def main():
     args,cfg=arguments()
+    if cfg.DATASET.OCCLUSION and not cfg.DATASET.FEATURE_CACHE:
+        from lib.util.beyondretarget.external_components import load_pascal_occlusion
+        load_pascal_occlusion()
     rank=int(os.environ.get('RANK','0'));world=int(os.environ.get('WORLD_SIZE','1'))
     local_rank=int(os.environ.get('LOCAL_RANK','0'))
     if cfg.DEVICE.startswith('cuda'):

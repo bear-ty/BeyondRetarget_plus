@@ -16,6 +16,7 @@ from lib.utils import rotation_conversions as geo
 from lib.utils.geometry import perspective_projection, estimate_translation
 
 from .coco_occlusion import occlude_with_pascal_objects
+from lib.util.beyondretarget.external_components import load_pascal_occlusion
 from lib.models.smpl import SMPL
 from skimage.util.shape import view_as_windows
 
@@ -36,6 +37,8 @@ class VideoDataset(Dataset):
     def __init__(self, dataset, ignore_3d=False, use_augmentation=True, is_train=True,
                 normalization=False, cropped=False, crop_size=224, seqlen=16, stride=16, subset=True):
         super(VideoDataset, self).__init__()
+        if use_augmentation:
+            load_pascal_occlusion()
         
         self.is_train = is_train
 

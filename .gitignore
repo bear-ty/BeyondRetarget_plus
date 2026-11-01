@@ -81,6 +81,11 @@ assets/robot/**/*.mtl
 .conda/
 .venv/
 thirdparty/Tracking-Anything-with-DEVA/
+# User-supplied SPEC/PARE components are not part of this release.
+/thirdparty/camcalib/*
+!/thirdparty/camcalib/README.md
+/thirdparty/pare/*
+!/thirdparty/pare/README.md
 *.partial
 *.tmp
 pip-wheel-metadata/

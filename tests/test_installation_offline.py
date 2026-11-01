@@ -254,8 +254,11 @@ class InstallationCheckerTests(unittest.TestCase):
     def test_strict_frontend_checks_actual_detectron2_deva_and_native_modules(self):
         with mock.patch.object(checker, "check_module", return_value=True), mock.patch.object(
             checker, "check_frontend_import", return_value=True
-        ) as native, mock.patch.object(checker, "check_camera_timm", return_value=True):
+        ) as native, mock.patch.object(checker, "check_camera_timm", return_value=True), mock.patch.object(
+            checker, "check_external_source", return_value=True
+        ) as external:
             self.assertTrue(checker.check_frontend_dependencies())
+        external.assert_called_once_with("camcalib")
         modules = {call.args[0]: call for call in native.call_args_list}
         self.assertTrue({
             "detectron2.config", "deva.model.network", "deva.inference.inference_core",
@@ -291,15 +294,22 @@ class InstallationCheckerTests(unittest.TestCase):
             checker, "check_file", return_value=True
         ), mock.patch.object(checker, "check_path", return_value=True), mock.patch.object(
             checker, "check_plus_bundle", return_value=True
-        ), mock.patch.object(checker, "check_frontend_dependencies", return_value=True) as frontend:
+        ), mock.patch.object(checker, "check_frontend_dependencies", return_value=True) as frontend, mock.patch.object(
+            checker, "check_occlusion_resources", return_value=False
+        ) as occlusion:
             with mock.patch.object(sys, "argv", ["check_installation.py"]):
                 with contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(checker.main(), 0)
             frontend.assert_not_called()
+            occlusion.assert_not_called()
             with mock.patch.object(sys, "argv", ["check_installation.py", "--require-frontend"]):
                 with contextlib.redirect_stdout(io.StringIO()):
                     self.assertEqual(checker.main(), 0)
             frontend.assert_called_once_with()
+            with mock.patch.object(sys, "argv", ["check_installation.py", "--require-occlusion"]):
+                with contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(checker.main(), 1)
+            occlusion.assert_called_once_with()
 
     def test_mjcf_mesh_check_fails_then_passes_when_mesh_is_materialized(self):
         with tempfile.TemporaryDirectory() as temporary:

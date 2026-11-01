@@ -2,33 +2,13 @@ import numpy as np
 import cv2
 import math
 import torch
-from pathlib import Path
-
-
-def _camera_regressor_class():
-    """Load the bundled upstream SPEC implementation."""
-    try:
-        from thirdparty.camcalib.model import CameraRegressorNetwork
-    except ImportError as exc:
-        raise RuntimeError(
-            'Could not import thirdparty.camcalib. Install the optional camera '
-            'frontend dependencies before using gravity alignment.'
-        ) from exc
-    return CameraRegressorNetwork
+from lib.util.beyondretarget.external_components import require_camera_resources
 
 
 def run_spec(img):
     # Predict gravity direction + fov using SPEC
-    CameraRegressorNetwork = _camera_regressor_class()
+    CameraRegressorNetwork, checkpoint = require_camera_resources()
     spec = CameraRegressorNetwork()
-    checkpoint = Path(__file__).resolve().parents[2] / 'data' / 'pretrain' / 'camcalib_sa_biased_l2.ckpt'
-    if not checkpoint.is_file():
-        raise FileNotFoundError(
-            f'Missing SPEC/camcalib checkpoint: {checkpoint}. '
-            'After accepting the upstream terms, obtain it from the official TRAM resource '
-            'https://drive.google.com/file/d/1t4tO0OM5s8XDvAzPW-5HaOkQuV3dHBdO/view?usp=sharing '
-            'and place it at that path; scripts/download_models.sh intentionally skips it.'
-        )
     spec = spec.load_ckpt(str(checkpoint)).to('cuda')
 
     with torch.no_grad():
